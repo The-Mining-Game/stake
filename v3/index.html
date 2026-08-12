@@ -48,6 +48,9 @@
   .g-frame .g2{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;background:rgba(255,210,63,.15);color:var(--gold)}
   .g-body{padding:10px 12px 12px}.g-body .gn{font-weight:600;font-size:13.5px}.g-body .gp{font-family:var(--mono);font-size:12px;color:var(--gold);margin:2px 0 8px}
   .g-body button{width:100%}
+  .stakerow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);margin:0 0 8px;flex-wrap:wrap}
+  .stakerow .chk{width:15px;height:15px;accent-color:var(--violet);flex:0 0 auto}
+  .stakerow .amt{width:52px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:var(--mono);font-size:12px}
   .free{color:var(--cyan)!important}
 </style>
 </head>
@@ -81,8 +84,11 @@
         <div><div class="k">Positions</div><div class="v" id="poscount">—</div></div>
       </div>
       <div class="row"><button id="claim">Claim WATT</button><button id="approveItems" class="ghost">Approve items</button><button class="ghost" id="refreshStake">Refresh</button></div>
-      <h2 style="margin-top:18px;font-size:15px">Your components — stake to earn</h2>
-      <p class="muted">Your V3 Mining Game NFTs. Approve items once, then Stake a component (powered off) to mint WATT by its stake weight.</p>
+      <div class="row" style="margin-top:18px;justify-content:space-between">
+        <h2 style="font-size:15px;margin:0">Your components — stake to earn</h2>
+        <div class="row" style="margin:0"><button class="ghost" id="selectAll">Select all</button><button id="stakeSelected">Stake selected</button></div>
+      </div>
+      <p class="muted">Approve items once. Tick the components and set how many of each to stake (powered off), then Stake selected — or stake one at a time.</p>
       <div class="gallery" id="ownedGallery"><p class="muted" id="ownedEmpty">Connect your wallet to see your components.</p></div>
       <h2 style="margin-top:18px;font-size:15px">Staked positions</h2>
       <div class="list" id="positions"></div>
@@ -323,12 +329,16 @@ async function renderOwned(){
   if(!owned.length){ g.innerHTML = '<p class="muted">No V3 components in this wallet on '+cur().name+' yet — buy or migrate some.</p>'; return; }
   startLoop();
   for(const {it,n} of owned){
-    const el = document.createElement("div"); el.className = "g-card";
+    const el = document.createElement("div"); el.className = "g-card"; el.dataset.id = it.id; el.dataset.max = String(n);
     const isImg = it.key && it.key.endsWith(".webp");
+    const max = Number(n);
     el.innerHTML = `<div class="g-frame">${isImg?`<img src="${assetUrl(it.key)}" alt="">`:'<div class="frame3d" style="width:100%;height:100%"><div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-size:11px">loading…</div></div>'}${it.gen===2?'<span class="g2">GEN 2</span>':''}</div>
       <div class="g-body"><div class="gn">${it.name}</div><div class="gp">you own ×${n}</div>
-        <button data-id="${it.id}">Stake (off)</button></div>`;
-    el.querySelector("button").onclick = ()=> tx(c(cur().mg, ABI.mg, true).stake(it.id, 1, false), `Staked ${it.name} (off) — earning WATT`);
+        <label class="stakerow"><input type="checkbox" class="chk"> stake <input type="number" class="amt" value="${max}" min="1" max="${max}" step="1"> of ${max}</label>
+        <button class="stakeone">Stake (off)</button></div>`;
+    const amtEl = el.querySelector(".amt");
+    amtEl.oninput = ()=>{ let v=Math.floor(Number(amtEl.value)||0); v=Math.max(1,Math.min(max,v)); if(String(v)!==amtEl.value) amtEl.value=v; };
+    el.querySelector(".stakeone").onclick = ()=>{ const a=Math.max(1,Math.min(max,Math.floor(Number(amtEl.value)||1))); tx(c(cur().mg, ABI.mg, true).stake(it.id, a, false), `Staked ${a}× ${it.name} (off) — earning WATT`); };
     g.appendChild(el);
     if(!isImg && (it.key||it.scene)){ try{ const obj = await getObject(it); makeViewer(el.querySelector(".frame3d"), obj, it.rot); }catch(e){} }
   }
@@ -376,6 +386,22 @@ $("refreshStake").onclick=refreshAll;
 
 // stake — per-component Stake buttons are wired in renderOwned()
 $("approveItems").onclick=()=>tx(c(cur().items,ABI.erc1155,true).setApprovalForAll(cur().mg,true),"Items approved");
+$("selectAll").onclick=()=>{ const boxes=[...$("ownedGallery").querySelectorAll(".chk")]; const anyOff=boxes.some(b=>!b.checked); boxes.forEach(b=>b.checked=anyOff); };
+$("stakeSelected").onclick=async()=>{
+  if(!signer) return toast("Connect your wallet first","err");
+  const picks=[...$("ownedGallery").querySelectorAll(".g-card")].filter(card=>card.querySelector(".chk").checked)
+    .map(card=>{ const max=Number(card.dataset.max); let a=Math.floor(Number(card.querySelector(".amt").value)||1); a=Math.max(1,Math.min(max,a)); return { id:Number(card.dataset.id), amt:a }; });
+  if(!picks.length) return toast("Tick at least one component to stake","err");
+  const mg=c(cur().mg,ABI.mg,true);
+  let done=0;
+  for(const p of picks){
+    try{ toast(`Staking ${p.amt}× #${p.id} — confirm in wallet (${done+1}/${picks.length})…`);
+      const t=await mg.stake(p.id,p.amt,false); await t.wait(); done++;
+    }catch(e){ toast("Stopped at #"+p.id+": "+((e.shortMessage||e.reason||e.message)+"").slice(0,80),"err"); break; }
+  }
+  if(done) toast(`Staked ${done} component type${done>1?"s":""} — earning WATT ✓`,"ok");
+  refreshAll();
+};
 $("claim").onclick=()=>tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed");
 // migrate
 $("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
