@@ -1,1 +1,613 @@
-<!DOCTYPE html><html><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width"/><link rel="shortcut icon" href="/favicon.ico"/><title>Crypto Mining Game</title><meta name="description" content="Stake your Mining Game NFTs to earn WATT token."/><meta name="keywords" content="stake, tokenStaking, NFT tokenStaking, NFT stake, yield"/><meta name="next-head-count" content="6"/><link data-next-font="" rel="preconnect" href="/" crossorigin="anonymous"/><link rel="preload" href="/_next/static/css/deb150b532fe7267.css" as="style"/><link rel="stylesheet" href="/_next/static/css/deb150b532fe7267.css" data-n-g=""/><noscript data-n-css=""></noscript><script defer="" nomodule="" src="/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js"></script><script src="/_next/static/chunks/webpack-21b8f0876595c230.js" defer=""></script><script src="/_next/static/chunks/framework-ff0cb1de24dfef7d.js" defer=""></script><script src="/_next/static/chunks/main-a820af9daec79400.js" defer=""></script><script src="/_next/static/chunks/pages/_app-30852b6523bff39d.js" defer=""></script><script src="/_next/static/chunks/pages/index-f790283565c7da0d.js" defer=""></script><script src="/_next/static/qiDz1MNgur0XW6CGp6wlL/_buildManifest.js" defer=""></script><script src="/_next/static/qiDz1MNgur0XW6CGp6wlL/_ssgManifest.js" defer=""></script></head><body><div id="__next"><div class="sc-3255dd1a-0 jyUTUa"><button class="sc-ea261265-0 frUrvD">Connect wallet</button><div class="sc-99f978dd-0 kBvbiE"><img alt="Watt icon" loading="lazy" width="32" height="32" decoding="async" data-nimg="1" class="sc-99f978dd-1 bzSYyR" style="color:transparent" src="/favicon.ico"/><div><div>0</div><div>$</div></div></div><div class="sc-3255dd1a-1 gTA-DFU"><img alt="Logo of the mining.game" loading="lazy" width="953" height="165" decoding="async" data-nimg="1" style="color:transparent" src="/logo.png"/></div><div class="sc-3255dd1a-2 kcWeYN"><div class="sc-3255dd1a-3 ktGgiv"><ul class="sc-3255dd1a-4 jSAVqG"><li class="sc-3255dd1a-5 cYMhSD"><span href="/inventory/" class="sc-3255dd1a-6 ehxsZD">Inventory</span></li><li class="sc-3255dd1a-5 cYMhSD"><span href="/nft-staking/" class="sc-3255dd1a-6 ehxsZD">NFT-staking</span></li><li class="sc-3255dd1a-5 cYMhSD"><span href="/token-staking/" class="sc-3255dd1a-6 ehxsZD">Token-staking</span></li><li class="sc-3255dd1a-5 cYMhSD"><span href="/multi-send/" class="sc-3255dd1a-6 ehxsZD">Multi-send</span></li><li class="sc-3255dd1a-5 cYMhSD"><span href="/claim/" class="sc-3255dd1a-6 ehxsZD">Claim-BSV</span></li></ul></div></div></div><div class="sc-71c7336-0 bZjzpg"><div loading="false" class="sc-8aeaaa3f-0 dGZmut"></div><div class="sc-e4697c4f-0 lbjdnV"></div></div></div><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{}},"page":"/","query":{},"buildId":"qiDz1MNgur0XW6CGp6wlL","nextExport":true,"autoExport":true,"isFallback":false,"scriptLoader":[]}</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Mining Game — Stake</title>
+<script type="importmap">{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+}}</script>
+<style>
+  :root{ --bg:#0c0a18; --panel:#151027; --panel2:#1c1636; --ink:#ece9fb; --dim:#a49dc4;
+    --line:#2a2246; --gold:#ffd23f; --cyan:#2ee6d6; --violet:#b892ff; --ok:#4fdd8a; --red:#ff6b5e;
+    --mono:ui-monospace,Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  a{color:var(--cyan)}
+  header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:10}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:18px}.logo b{color:var(--gold)}
+  .logo img{height:30px;width:auto;display:block}
+  .logo .sub{color:var(--dim);font-weight:600;font-size:14px;letter-spacing:0}
+  .earnhero{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:linear-gradient(135deg,rgba(255,210,63,.12),rgba(46,230,214,.06));border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px}
+  .earnhero .wattbig{width:66px;height:66px;flex:0 0 auto;filter:drop-shadow(0 0 12px rgba(255,210,63,.45));animation:wattpulse 3.2s ease-in-out infinite}
+  @keyframes wattpulse{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.04)}}
+  @media (prefers-reduced-motion:reduce){.earnhero .wattbig{animation:none}}
+  .earnmid{flex:1 1 220px;min-width:0}
+  .earnlabel{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .earnval{display:flex;align-items:baseline;gap:8px;font-family:var(--mono);font-weight:800;line-height:1.05;margin-top:2px}
+  .earnval #pendingBig{font-size:34px;color:var(--gold);font-variant-numeric:tabular-nums}
+  .earnval .earnunit{font-size:14px;color:var(--dim);letter-spacing:.04em}
+  .earnsub{font-size:12.5px;color:var(--dim);margin-top:4px}
+  .claimbtn{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(180deg,#ffe071,#e9b400);color:#3a2a00;border:0;border-radius:12px;padding:13px 20px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 4px 14px rgba(233,180,0,.35);flex:0 0 auto}
+  .claimbtn:hover{filter:brightness(1.05)}.claimbtn:disabled{opacity:.5;cursor:default;box-shadow:none}
+  .claimbtn img{width:22px;height:22px}
+  .grow{flex:1}
+  select,button{font-family:inherit;font-size:14px}
+  select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  button{background:var(--violet);color:#12091f;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+  button.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .wrap{max-width:940px;margin:0 auto;padding:24px 20px 80px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 22px}
+  .tab{padding:8px 14px;border-radius:20px;background:var(--panel);border:1px solid var(--line);color:var(--dim);cursor:pointer;font-size:13.5px}
+  .tab.on{background:var(--gold);color:#12091f;border-color:var(--gold);font-weight:700}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+  .card h2{margin:0 0 4px;font-size:18px}.card p.d{color:var(--dim);font-size:13.5px;margin:0 0 16px;max-width:64ch}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  input{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:13px;flex:1;min-width:120px}
+  label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:12px 0}
+  .kv>div{background:var(--panel);padding:12px 14px}.kv .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}.kv .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;gap:12px;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+  .item .n{font-weight:600}.item .s{color:var(--dim);font-size:12px;font-family:var(--mono)}.item .grow{flex:1}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 18px;max-width:90vw;z-index:50;display:none;font-size:13.5px}
+  .toast.err{border-color:var(--red);color:var(--red)}.toast.ok{border-color:var(--ok);color:var(--ok)}
+  code{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .muted{color:var(--dim);font-size:12.5px}
+  .warn{border-left:2px solid var(--gold);padding-left:12px;color:var(--dim);font-size:12.5px;margin:10px 0}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:8px}
+  .g-card{border:1px solid var(--line);border-radius:12px;background:var(--panel2);overflow:hidden;display:flex;flex-direction:column}
+  .g-frame{aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#1c1636,#0c0a18);position:relative}
+  .g-frame model-viewer,.g-frame img{width:100%;height:100%}
+  .g-frame .g2{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;background:rgba(255,210,63,.15);color:var(--gold)}
+  .g-body{padding:10px 12px 12px}.g-body .gn{font-weight:600;font-size:13.5px}.g-body .gp{font-family:var(--mono);font-size:12px;color:var(--gold);margin:2px 0 8px}
+  .g-body button{width:100%}
+  .stakerow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);margin:0 0 8px;flex-wrap:wrap}
+  .stakerow .chk{width:15px;height:15px;accent-color:var(--violet);flex:0 0 auto}
+  .stakerow .amt{width:52px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:var(--mono);font-size:12px}
+  .free{color:var(--cyan)!important}
+  .amtbig{flex:1 1 160px;min-width:0;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-family:var(--mono);font-size:15px}
+  /* ============ mobile / in-app wallet browsers ============ */
+  html,body{max-width:100%;overflow-x:hidden}
+  .mono,code,.addr{word-break:break-all;overflow-wrap:anywhere}
+  @media (max-width:640px){
+    header{padding:10px 14px;gap:8px 10px}
+    .logo img{height:24px}.logo .sub{display:none}
+    #net{flex:1 1 130px;min-width:0}
+    #connect,#net{min-height:44px}
+    #wattbal{order:3;flex-basis:100%;font-size:12px}
+    .wrap{padding:16px 14px 72px}
+    .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px -14px 16px;padding:2px 14px;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{white-space:nowrap;flex:0 0 auto;padding:9px 15px;font-size:14px}
+    .card{padding:15px 14px;border-radius:12px;margin-bottom:14px}
+    .earnhero{padding:15px 14px;gap:12px}
+    .earnhero .wattbig{width:52px;height:52px}
+    .earnmid{flex:1 1 100%;order:2}
+    .earnval #pendingBig{font-size:27px}
+    .claimbtn{order:3;width:100%;justify-content:center;min-height:48px}
+    .gallery{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+    button{min-height:44px}.g-body button{min-height:42px}
+    .stakerow{font-size:12.5px}.stakerow .amt{width:56px;min-height:36px}
+    .kv{grid-template-columns:1fr 1fr}
+    .item{flex-wrap:wrap}.item button{flex:1 1 auto}
+    h2{font-size:16px}
+  }
+  @media (max-width:380px){ .gallery{grid-template-columns:1fr 1fr} .earnval #pendingBig{font-size:24px} }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><img src="mg-logo.png" alt="The Mining Game"><span class="sub">· Stake</span></div>
+  <div class="grow"></div>
+  <select id="net">
+    <option value="137">🟣 Polygon</option>
+    <option value="2330">🟠 Altcoinchain</option>
+  </select>
+  <span id="wattbal" class="muted"></span>
+  <button id="connect">Connect Wallet</button>
+</header>
+<div class="wrap">
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-t="stake">Stake &amp; Claim</div>
+    <div class="tab" data-t="wstake">Stake WATT</div>
+    <div class="tab" data-t="migrate">Migrate old → new</div>
+    <div class="tab" data-t="watt">WATT</div>
+    <div class="tab" data-t="buy">Buy components</div>
+  </div>
+
+  <section id="pane-stake">
+    <div class="earnhero">
+      <img class="wattbig" src="watt.png" alt="WATT">
+      <div class="earnmid">
+        <div class="earnlabel">Your WATT earnings</div>
+        <div class="earnval"><span id="pendingBig">0.00</span><span class="earnunit">WATT</span></div>
+        <div class="earnsub" id="earnRate">Connect your wallet to start earning.</div>
+      </div>
+      <button id="claimBig" class="claimbtn" disabled><img src="watt.png" alt="">Claim WATT</button>
+    </div>
+    <div class="card">
+      <h2>Powered-off staking</h2>
+      <p class="d">Stake your Mining Game components powered <b>off</b> to mint WATT by their stake weight, over time.
+        Claim your earned WATT anytime (you just pay gas). To mine for coins instead, assemble a rig and power it on <b>in the game</b> — that burns WATT.</p>
+      <div class="kv">
+        <div><div class="k">Pending WATT</div><div class="v" id="pending">—</div></div>
+        <div><div class="k">Off-weight staked</div><div class="v" id="offw">—</div></div>
+        <div><div class="k">Positions</div><div class="v" id="poscount">—</div></div>
+      </div>
+      <div class="row"><button id="claim">Claim WATT</button><button id="approveItems" class="ghost">Approve items</button><button class="ghost" id="refreshStake">Refresh</button></div>
+      <div class="row" style="margin-top:18px;justify-content:space-between">
+        <h2 style="font-size:15px;margin:0">Your components — stake to earn</h2>
+        <div class="row" style="margin:0"><button class="ghost" id="selectAll">Select all</button><button id="stakeSelected">Stake selected</button></div>
+      </div>
+      <p class="muted">Approve items once. Tick the components and set how many of each to stake (powered off), then Stake selected — or stake one at a time.</p>
+      <div class="gallery" id="ownedGallery"><p class="muted" id="ownedEmpty">Connect your wallet to see your components.</p></div>
+      <h2 style="margin-top:18px;font-size:15px">Staked positions</h2>
+      <div class="list" id="positions"></div>
+    </div>
+  </section>
+
+  <section id="pane-wstake" style="display:none">
+    <div class="earnhero">
+      <img class="wattbig" src="watt.png" alt="WATT">
+      <div class="earnmid">
+        <div class="earnlabel">Your WATT-pool rewards</div>
+        <div class="earnval"><span id="wpPending">0.00</span><span class="earnunit">WATT</span></div>
+        <div class="earnsub" id="wpShare">Stake WATT to earn a share of every NFT purchase.</div>
+      </div>
+      <button id="wpClaim" class="claimbtn" disabled><img src="watt.png" alt="">Claim rewards</button>
+    </div>
+    <div class="card">
+      <h2>Stake WATT — earn back purchase fees</h2>
+      <p class="d">Every WATT spent buying NFTs in the shop is routed into this pool. Stakers share it <b>pro-rata</b> by their stake — so the more WATT you stake, the bigger your slice of the fees. Unstaking always returns your full principal; rewards are separate.</p>
+      <div class="kv">
+        <div><div class="k">Your staked WATT</div><div class="v" id="wpStaked">—</div></div>
+        <div><div class="k">Pool total staked</div><div class="v" id="wpTotal">—</div></div>
+        <div><div class="k">Fees distributed</div><div class="v" id="wpFunded">—</div></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <input id="wpAmt" type="number" min="0" step="1" placeholder="WATT amount" class="amtbig">
+        <button id="wpMax" class="ghost">Max</button>
+        <button id="wpStake">Stake WATT</button>
+        <button id="wpUnstake" class="ghost">Unstake</button>
+      </div>
+      <p class="muted" id="wpCooldown" style="margin-top:10px"></p>
+    </div>
+  </section>
+
+  <section id="pane-migrate" style="display:none">
+    <div class="card">
+      <h2>Swap classic components 1:1</h2>
+      <p class="d">Holders of the original Mining Game NFTs swap them one-for-one for the new V3 components.
+        Your classic tokens are retired and the same id/amount is minted on the new collection.</p>
+      <div class="warn" id="migWarn">The migrator must hold mint rights on the new collection (a one-time multisig setup) before swaps can complete.</div>
+      <div class="row"><button id="approveClassic" class="ghost">Approve classic collection</button><button class="ghost" id="migAll">Swap ALL below</button><button class="ghost" id="refreshMig">Refresh</button></div>
+      <label style="margin:14px 0 4px;display:block">Your classic components</label>
+      <div class="list" id="classicList"><p class="muted" id="classicEmpty">Connect your wallet to see the old NFTs you can swap.</p></div>
+    </div>
+  </section>
+
+  <section id="pane-watt" style="display:none">
+    <div class="card">
+      <h2>Swap old WATT → new WATT (1:1)</h2>
+      <p class="d">Convert your legacy WATT to WATT v2 at 1:1 through the on-chain swap.</p>
+      <div class="row"><div style="flex:1"><label>Old WATT amount</label><input id="swAmt" placeholder="amount"></div>
+        <button id="approveOldWatt" class="ghost">Approve old WATT</button><button id="swapWatt">Swap → new WATT</button></div>
+      <div class="muted" id="oldWattBal"></div>
+    </div>
+    <div class="card">
+      <h2>Trade WATT (in the vault DEX)</h2>
+      <p class="d">Deposit / withdraw WATT and coins, and trade coin ↔ WATT at the live DEX price. Your rewards land here.</p>
+      <div class="kv"><div><div class="k">Vault WATT</div><div class="v" id="vaultWatt">—</div></div></div>
+      <div class="row">
+        <div style="flex:1"><label>Deposit WATT</label><input id="depAmt" placeholder="amount"></div>
+        <button id="approveVault" class="ghost">Approve</button><button id="depBtn">Deposit</button>
+        <button id="wdBtn" class="ghost">Withdraw all</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pane-buy" style="display:none">
+    <div class="card">
+      <h2>Buy components</h2>
+      <p class="d">Each component, rendered from its on-chain BSV model. Prices are in WATT — approve the shop once, then buy. The Gaming PC case is a free mint.</p>
+      <div class="row"><button id="approveShop" class="ghost">Approve WATT for shop</button></div>
+      <div class="gallery" id="gallery"></div>
+    </div>
+  </section>
+
+  <p class="muted" style="margin-top:24px">Contracts (same address on Polygon &amp; ALT): MiningGameV3 <code>0x856f59F1…5681f</code> · Vault <code>0x72A716F6…3acA</code> · Migrator <code>0x97BcC99f…9679</code>. WATTx coming soon.</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+// Live, interactive 3D card viewers: each model auto-rotates and can be dragged
+// to spin on all axes. One shared render loop drives every viewer; only the ones
+// visible in the viewport are rendered so a full grid stays smooth.
+const _gltf = new GLTFLoader(); _gltf.setMeshoptDecoder(MeshoptDecoder);
+let _bundle;
+async function loadBundle(){ if(!_bundle) _bundle = await _gltf.loadAsync(assetUrl("gen2.glb")); return _bundle; }
+async function getObject(item){
+  if(item.scene){ const g = await loadBundle(); const sc = g.scenes.find(s=>s.name===item.scene);
+    if(!sc) throw new Error("no scene "+item.scene); return sc.clone(true); }
+  const g = await _gltf.loadAsync(assetUrl(item.key)); return g.scene;
+}
+const _viewers = [];
+function makeViewer(container, obj, orient){
+  const r = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  r.setPixelRatio(Math.min(devicePixelRatio,2));
+  const w = container.clientWidth||200, h = container.clientHeight||200;
+  r.setSize(w,h); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.35;
+  container.innerHTML=""; container.appendChild(r.domElement);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff,0x223, 2.2));
+  const d = new THREE.DirectionalLight(0xffffff, 2.6); d.position.set(2,3,4); scene.add(d);
+  const d2 = new THREE.DirectionalLight(0x99bbff, 1.2); d2.position.set(-3,1,-2); scene.add(d2);
+  const cam = new THREE.PerspectiveCamera(38, w/h, 0.01, 100);
+  // center + orient the model
+  const box = new THREE.Box3().setFromObject(obj), size = new THREE.Vector3(), ctr = new THREE.Vector3();
+  box.getSize(size); box.getCenter(ctr); obj.position.sub(ctr);
+  const holder = new THREE.Group(); if(orient) holder.rotation.set(orient[0]||0,orient[1]||0,orient[2]||0);
+  holder.add(obj); scene.add(holder);
+  const rad = Math.max(size.x,size.y,size.z) || 1;
+  cam.position.set(rad*1.7, rad*1.2, rad*2.0);
+  const controls = new OrbitControls(cam, r.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.enablePan = false; controls.enableZoom = false; // don't hijack page scroll
+  controls.autoRotate = true; controls.autoRotateSpeed = 2.4;
+  controls.minPolarAngle = 0; controls.maxPolarAngle = Math.PI; // full vertical tumble
+  controls.target.set(0,0,0); controls.update();
+  const v = { r, scene, cam, controls, el: container };
+  _viewers.push(v);
+  return v;
+}
+let _looping=false;
+function _loop(){
+  for(const v of _viewers){
+    const b = v.el.getBoundingClientRect();
+    if(b.bottom < 0 || b.top > innerHeight) continue; // off-screen: skip
+    v.controls.update(); v.r.render(v.scene, v.cam);
+  }
+  requestAnimationFrame(_loop);
+}
+function startLoop(){ if(_looping) return; _looping=true; requestAnimationFrame(_loop); }
+
+const CFG = {
+  137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com",
+    items:"0x0CDbf4926a8EdFFaa803B96f8fa90B065DE19Eb2", shop:"0xeE6B67c3993884F1b693A4a66e952Bb563463131",
+    mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
+    watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f", oldWatt:"0xE960d5076cd3169C343Ee287A2c3380A222e5839",
+    wattSwap:"0x90a0906a7e01a65f48bd35741681088E3FA6729c", classic:"0x970a8b10147e3459d3cbf56329b76ac18d329728",
+    wattPool:"0x7E8FC9d7D7588F410E1399aC690F901268B08a8d",
+    migrator:"0x97BcC99ff34FA2cde929c97074011E8929F59679" },
+  2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://rpc.wattxchange.app",
+    items:"0x851fd0205348783444Fc9EDe99Ca2321681EC99b", shop:"0x92809C4a46b4D0F11a48BE21fF13202EA56DcEB1",
+    mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
+    watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D", oldWatt:"0x6645143e49B3a15d8F205658903a55E520444698",
+    wattSwap:"0xdFd07EBEEC3228D14b99f9f39EC71D884ABcbbF4", classic:"0xf9670e5D46834561813CA79854B3d7147BBbFfb2",
+    wattPool:"0xa3f8B04310380cD13Ec85B11420d1fc848af36C4",
+    migrator:"0x97BcC99ff34FA2cde929c97074011E8929F59679" },
+};
+const ABI = {
+  erc20:["function balanceOf(address) view returns (uint256)","function approve(address,uint256) returns (bool)","function allowance(address,address) view returns (uint256)","function decimals() view returns (uint8)"],
+  erc1155:["function setApprovalForAll(address,bool)","function isApprovedForAll(address,address) view returns (bool)","function balanceOf(address,uint256) view returns (uint256)"],
+  mg:["function stake(uint256 id,uint256 amount,bool powered)","function unstake(uint256 idx)","function setPowered(uint256 idx,bool on)","function claimWatt()","function pendingWatt(address) view returns (uint256)","function positionCount(address) view returns (uint256)","function positions(address,uint256) view returns (uint256 id,uint256 amount,uint256 weight,uint256 rate,bool powered,bool active)","function acct(address) view returns (uint256 offWeight,uint256 onRate,uint256 fuel,uint256 pending,uint256 lastTs)","function emitRatePerWeight() view returns (uint256)"],
+  vault:["function deposit() payable","function depositToken(address,uint256)","function withdrawAll(address)","function balanceOf(address,address) view returns (uint256)"],
+  migrator:["function migrate(uint256[] ids,uint256[] amounts)"],
+  wattSwap:["function migrate(uint256 amount)"],
+  shop:["function buyWithWatt(uint256 id,uint256 amount)"],
+  // WattStakingPool (v1 live). v2 adds restake()/lastClaim()/CLAIM_COOLDOWN — probed at runtime.
+  pool:["function stake(uint256 amount)","function unstake(uint256 amount)","function claim()","function restake()","function pending(address) view returns (uint256)","function balanceOf(address) view returns (uint256)","function totalStaked() view returns (uint256)","function totalFunded() view returns (uint256)","function totalClaimed() view returns (uint256)","function lastClaim(address) view returns (uint256)","function CLAIM_COOLDOWN() view returns (uint256)"],
+};
+// component id → name + BSV asset key for thumbnails (from the game catalog)
+const NAMES = { 1:["Gaming PC","pc.glb"], 2:["Genesis Badge","badge.webp"], 3:["XL1 Processor","cpu.glb"],
+  4:["TX120 GPU","gpu_tx120.glb"], 5:["GP50 GPU","gpu_gp50.glb"], 8:["TX190 GPU"], 9:["XL190 CPU"],
+  10:["GP720 GPU"], 11:["GPX880 GPU"], 12:["XXL270 CPU"], 13:["Bit Hammer ASIC"], 14:["Mining Rig Frame"],
+  17:["Red Mouse"], 18:["RGB Keyboard"], 19:["Server Tower"], 23:["LC23 Monitor"] };
+const CLASSIC_IDS = Object.keys(NAMES).map(Number);
+const BSV_ORIGIN = { "pc.glb":"29ef03b0e0aabb4c9adef4c0c7f1f37aa11567e554366d49bc90e369cf4c7994_0",
+  "cpu.glb":"366ff5a850a655727b8a28178556a86e19f06a81da34a35d5c03b48c885a16a8_0",
+  "gpu_tx120.glb":"9db877b8694330ab9cd56a93f14680a1a1cee0b0df0b526865fde2ebca9d31a7_0",
+  "gpu_gp50.glb":"3a44c183f158d2627133fea83fa98a9522c4ee5b7def5ae6d9a7c9e011903054_0",
+  "gen2.glb":"109a1bba976772a4c40100bd2010cef8dd3fce7681bbc95d2a23eea3755606f5_0",
+  "badge.webp":"a54eaebda42a364c9eb81b6940fa29de780aae8c175e956b889d81ac4ff4e0c8_0" };
+let provider, signer, addr, chainId = 137;
+let classicHeld = []; // [{id, amount}]
+// shop catalog: id, name, price(WATT), asset key (glb/webp), gen. free = price 0.
+const CATALOG = [
+  { id:1,  name:"Gaming PC",        price:0,     key:"pc.glb",        gen:1, free:true },
+  { id:3,  name:"XL1 Processor",    price:200,   key:"cpu.glb",       gen:1 },
+  { id:4,  name:"TX120 GPU",        price:700,   key:"gpu_tx120.glb", gen:1 },
+  { id:5,  name:"GP50 GPU",         price:1200,  key:"gpu_gp50.glb",  gen:1 },
+  { id:2,  name:"Genesis Badge",    price:20000, key:"badge.webp",    gen:1 },
+  { id:14, name:"Mining Rig Frame", price:8000,  gen:1, scene:"14_Mining_Rig_Frame" },
+  { id:9,  name:"XL190 CPU",        price:4500,  gen:2, scene:"9_XL_190_CPU" },
+  { id:8,  name:"TX190 GPU",        price:6000,  gen:2, scene:"8_TX_190", rot:[Math.PI,0,0] },
+  { id:12, name:"XXL270 CPU",       price:12000, gen:2, scene:"10_XXL_270_CPU" },
+  { id:10, name:"GP720 GPU",        price:14000, gen:2, scene:"10_GP_720_GPU", rot:[Math.PI,0,0] },
+  { id:11, name:"GPX880 GPU",       price:30000, gen:2, scene:"11_GPX_880_a" },
+  { id:13, name:"Bit Hammer ASIC",  price:60000, gen:2, scene:"13_Bit_Hammer_ASIC" },
+  { id:19, name:"Server Tower",     price:20000, gen:2, scene:"19_Server_Tower" },
+];
+function assetUrl(key){ const o = BSV_ORIGIN[key]; return o ? "https://ordinals.gorillapool.io/content/"+o : null; }
+async function renderGallery(){
+  const g = document.getElementById("gallery"); if(g.dataset.built) return; g.dataset.built = "1";
+  const jobs = [];
+  for(const it of CATALOG){
+    const url = it.key && assetUrl(it.key); const isImg = it.key && it.key.endsWith(".webp");
+    const frameInner = isImg ? `<img src="${url}" alt="${it.name}" loading="lazy">`
+      : `<div class="frame3d" style="width:100%;height:100%"><div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">loading 3D…</div></div>`;
+    const el = document.createElement("div"); el.className = "g-card";
+    el.innerHTML = `<div class="g-frame">${frameInner}${it.gen===2?'<span class="g2">GEN 2</span>':''}</div>
+      <div class="g-body"><div class="gn">${it.name}</div>
+        <div class="gp ${it.free?'free':''}">${it.free?"FREE MINT":it.price.toLocaleString()+" ⚡"}</div>
+        <button data-id="${it.id}">${it.free?"Mint free":"Buy"}</button></div>`;
+    el.querySelector("button").onclick = ()=> buyItem(it);
+    g.appendChild(el);
+    if(!isImg && (url || it.scene)) jobs.push({ frame: el.querySelector(".frame3d"), it });
+  }
+  startLoop();
+  // build each live viewer sequentially (loading is serialized; rendering is shared)
+  for(const j of jobs){
+    try{ const obj = await getObject(j.it); makeViewer(j.frame, obj, j.it.rot); }
+    catch(e){ const ph = j.frame.querySelector(".ph"); if(ph) ph.textContent = "model on-chain"; }
+  }
+}
+const $ = (id) => document.getElementById(id);
+const fmt = (w, dp=2) => { const n = Number(ethers.formatEther(w)); return n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString(undefined,{maximumFractionDigits:dp}); };
+// live WATT earnings counter: extrapolate on-chain accrual (offWeight*emitRatePerWeight/sec) between refreshes
+let _emitRate = null, _earn = null;
+function tickEarn(){
+  const el = document.getElementById("pendingBig"); if(!el) return;
+  if(!_earn){ el.textContent = "0.00"; return; }
+  const secs = (Date.now() - _earn.t0) / 1000;
+  const nowWei = _earn.base + BigInt(Math.floor(secs)) * _earn.ratePerSec; // integer-sec part on-chain-exact
+  const frac = (secs - Math.floor(secs)) * Number(ethers.formatEther(_earn.ratePerSec)); // sub-second, display only
+  const val = Number(ethers.formatEther(nowWei)) + frac;
+  const dp = val < 1 ? 6 : val < 1000 ? 4 : 2;
+  el.textContent = val.toLocaleString(undefined,{minimumFractionDigits:dp,maximumFractionDigits:dp});
+}
+setInterval(tickEarn, 100);
+function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="toast "+(kind||""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 6000); }
+const c = (a,abi,rw) => new ethers.Contract(a, abi, rw?signer:provider);
+function cur(){ return CFG[chainId]; }
+
+async function connect(){
+  if(!window.ethereum){ toast("No wallet found — install MetaMask","err"); return; }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = await provider.getSigner(); addr = await signer.getAddress();
+  const net = await provider.getNetwork(); chainId = Number(net.chainId);
+  if(!CFG[chainId]){ await switchNet(137); }
+  $("net").value = String(chainId);
+  $("connect").textContent = addr.slice(0,6)+"…"+addr.slice(-4);
+  refreshAll();
+}
+async function switchNet(id){
+  try{ await window.ethereum.request({ method:"wallet_switchEthereumChain", params:[{chainId:CFG[id].hex}] }); }
+  catch(e){ toast("Switch your wallet to "+CFG[id].name,"err"); }
+  chainId=id; provider=new ethers.BrowserProvider(window.ethereum); signer=await provider.getSigner(); refreshAll();
+}
+async function tx(promise, okMsg){ try{ toast("Confirm in your wallet…"); const t=await promise; toast("Pending… "+t.hash.slice(0,12)); await t.wait(); toast(okMsg||"Done ✓","ok"); refreshAll(); }
+  catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); } }
+
+async function refreshAll(){
+  if(!addr) return;
+  try{
+    const w = c(cur().watt, ABI.erc20);
+    $("wattbal").textContent = "WATT " + fmt(await w.balanceOf(addr));
+    const mg = c(cur().mg, ABI.mg);
+    const pend = await mg.pendingWatt(addr);
+    $("pending").textContent = fmt(pend);
+    const a = await mg.acct(addr); $("offw").textContent = a.offWeight.toString();
+    if(_emitRate===null){ try{ _emitRate = await mg.emitRatePerWeight(); }catch(e){ _emitRate = 0n; } }
+    // WATT accrues on-chain at offWeight * emitRatePerWeight per second (wei); tick it live client-side
+    _earn = { base: pend, ratePerSec: a.offWeight * (_emitRate||0n), t0: Date.now() };
+    const ratePerHr = Number(ethers.formatEther(_earn.ratePerSec)) * 3600;
+    $("earnRate").textContent = _earn.ratePerSec>0n
+      ? `Earning ${ratePerHr.toLocaleString(undefined,{maximumFractionDigits:3})} WATT / hour · powered-off weight ${a.offWeight}`
+      : "Stake a component below (powered off) to start earning WATT.";
+    $("claimBig").disabled = false;
+    tickEarn();
+    const pc = await mg.positionCount(addr); $("poscount").textContent = pc.toString();
+    renderPositions(mg, Number(pc));
+    $("vaultWatt").textContent = fmt(await c(cur().vault, ABI.vault).balanceOf(addr, cur().watt));
+    $("oldWattBal").textContent = "Old WATT balance: " + fmt(await c(cur().oldWatt, ABI.erc20).balanceOf(addr));
+    renderClassic();
+    renderOwned();
+    renderWattPool();
+  }catch(e){ /* view read hiccup */ }
+}
+// show the V3 components this wallet owns as 3D cards, each with a Stake button
+let _ownedBuilt = "";
+async function renderOwned(){
+  const items = new ethers.Contract(cur().items, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"], provider);
+  const ids = CATALOG.map(it=>it.id);
+  let bals; try{ bals = await items.balanceOfBatch(ids.map(()=>addr), ids); }catch(e){ return; }
+  const owned = CATALOG.map((it,i)=>({it, n: bals[i]})).filter(x=>x.n>0n);
+  const sig = chainId+":"+owned.map(o=>o.it.id+"x"+o.n).join(",");
+  if(sig===_ownedBuilt) return; _ownedBuilt = sig; // avoid rebuilding viewers every refresh
+  const g = $("ownedGallery"); g.innerHTML = "";
+  if(!owned.length){ g.innerHTML = '<p class="muted">No V3 components in this wallet on '+cur().name+' yet — buy or migrate some.</p>'; return; }
+  startLoop();
+  for(const {it,n} of owned){
+    const el = document.createElement("div"); el.className = "g-card"; el.dataset.id = it.id; el.dataset.max = String(n);
+    const isImg = it.key && it.key.endsWith(".webp");
+    const max = Number(n);
+    el.innerHTML = `<div class="g-frame">${isImg?`<img src="${assetUrl(it.key)}" alt="">`:'<div class="frame3d" style="width:100%;height:100%"><div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-size:11px">loading…</div></div>'}${it.gen===2?'<span class="g2">GEN 2</span>':''}</div>
+      <div class="g-body"><div class="gn">${it.name}</div><div class="gp">you own ×${n}</div>
+        <label class="stakerow"><input type="checkbox" class="chk"> stake <input type="number" class="amt" value="${max}" min="1" max="${max}" step="1"> of ${max}</label>
+        <button class="stakeone">Stake (off)</button></div>`;
+    const amtEl = el.querySelector(".amt");
+    amtEl.oninput = ()=>{ let v=Math.floor(Number(amtEl.value)||0); v=Math.max(1,Math.min(max,v)); if(String(v)!==amtEl.value) amtEl.value=v; };
+    el.querySelector(".stakeone").onclick = ()=>{ const a=Math.max(1,Math.min(max,Math.floor(Number(amtEl.value)||1))); tx(c(cur().mg, ABI.mg, true).stake(it.id, a, false), `Staked ${a}× ${it.name} (off) — earning WATT`); };
+    g.appendChild(el);
+    if(!isImg && (it.key||it.scene)){ try{ const obj = await getObject(it); makeViewer(el.querySelector(".frame3d"), obj, it.rot); }catch(e){} }
+  }
+}
+// scan the classic collection for everything the user owns, show name + amount + swap
+async function renderClassic(){
+  const classic = new ethers.Contract(cur().classic, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"], provider);
+  const accts = CLASSIC_IDS.map(()=>addr);
+  let bals; try{ bals = await classic.balanceOfBatch(accts, CLASSIC_IDS); }catch(e){ return; }
+  classicHeld = [];
+  CLASSIC_IDS.forEach((id,i)=>{ if(bals[i] > 0n) classicHeld.push({ id, amount: bals[i] }); });
+  const box = $("classicList"); box.innerHTML = "";
+  if(!classicHeld.length){ box.innerHTML = '<p class="muted">No classic Mining Game components found in this wallet on '+cur().name+'.</p>'; return; }
+  for(const h of classicHeld){
+    const nm = (NAMES[h.id]||["Component #"+h.id])[0];
+    const key = (NAMES[h.id]||[])[1]; const o = key && BSV_ORIGIN[key];
+    const el = document.createElement("div"); el.className = "item";
+    const thumb = o ? `<img src="https://ordinals.gorillapool.io/content/${o}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:#0c0a18" onerror="this.style.display='none'">` : "";
+    el.innerHTML = `${thumb}<div><div class="n">${nm}</div><div class="s">id ${h.id} · you own <b>×${h.amount}</b></div></div><div class="grow"></div>`;
+    const b = document.createElement("button"); b.textContent = "Swap ×"+h.amount; b.dataset.id = h.id; b.dataset.amt = h.amount;
+    b.onclick = ()=> tx(c(cur().migrator, ABI.migrator, true).migrate([h.id],[h.amount]), `Swapped ${h.amount}× ${nm} 1:1`);
+    el.appendChild(b); box.appendChild(el);
+  }
+}
+async function renderPositions(mg, n){
+  const box=$("positions"); box.innerHTML="";
+  for(let i=0;i<n;i++){ const p=await mg.positions(addr,i); if(!p.active) continue;
+    const el=document.createElement("div"); el.className="item";
+    // Stake-site positions are powered-OFF earners only. Powering a rig ON to mine
+    // requires an assembled rig staked into a pool — that happens in the game, not here.
+    el.innerHTML=`<div><div class="n">Component #${p.id} ×${p.amount}</div><div class="s">⚡ earning WATT · weight ${p.weight}</div></div><div class="grow"></div>`;
+    const bu=document.createElement("button"); bu.textContent="Unstake"; bu.onclick=()=>tx(mg.unstake(i),"Unstaked");
+    el.append(bu); box.appendChild(el);
+  }
+}
+
+// ---- WATT staking pool (earn back NFT-purchase fees, pro-rata by stake) ----
+let _wp = { staked:0n, bal:0n, isV2:false, cooldownEnds:0 };
+async function renderWattPool(){
+  if(!addr) return;
+  try{
+    const p = c(cur().wattPool, ABI.pool), w = c(cur().watt, ABI.erc20);
+    const [staked, pend, total, funded, bal] = await Promise.all([
+      p.balanceOf(addr), p.pending(addr), p.totalStaked(), p.totalFunded(), w.balanceOf(addr) ]);
+    _wp.staked = staked; _wp.bal = bal;
+    $("wpStaked").textContent = fmt(staked);
+    $("wpTotal").textContent  = fmt(total);
+    $("wpFunded").textContent = fmt(funded);
+    $("wpPending").textContent = fmt(pend, 4);
+    const share = total>0n ? Number(staked*10000n/total)/100 : 0;
+    $("wpShare").textContent = staked>0n
+      ? `You hold ${share.toLocaleString(undefined,{maximumFractionDigits:2})}% of the pool — your slice of every NFT purchase.`
+      : "Stake WATT to earn a share of every NFT purchase.";
+    // v2 detection: cooldown + restake exist only on the upgraded pool
+    let cooldownMsg = "", canClaim = pend>0n;
+    try{
+      const [cd, last] = await Promise.all([ p.CLAIM_COOLDOWN(), p.lastClaim(addr) ]);
+      _wp.isV2 = true;
+      const ends = Number(last) + Number(cd); _wp.cooldownEnds = ends*1000;
+      const now = Math.floor(Date.now()/1000);
+      if(Number(last)>0 && now < ends){
+        const hrs = ((ends-now)/3600); cooldownMsg = `⏳ Next claim available in ${hrs>=1?hrs.toFixed(1)+' h':Math.ceil((ends-now)/60)+' min'} (24 h cooldown per address). You can Restake anytime.`;
+        canClaim = false;
+      } else cooldownMsg = "24 h cooldown between payout claims · Restake compounds anytime without cooldown.";
+      ensureRestakeBtn(true);
+    }catch(_){ _wp.isV2 = false; ensureRestakeBtn(false); cooldownMsg = ""; }
+    $("wpCooldown").textContent = cooldownMsg;
+    $("wpClaim").disabled = !canClaim;
+  }catch(e){ /* pool read hiccup */ }
+}
+function ensureRestakeBtn(on){
+  let b = $("wpRestake");
+  if(on && !b){ b=document.createElement("button"); b.id="wpRestake"; b.className="claimbtn"; b.style.marginLeft="8px";
+    b.innerHTML='<img src="watt.png" alt="">Claim &amp; Restake';
+    b.onclick=()=>{ if(!signer) return toast("Connect your wallet first","err"); tx(c(cur().wattPool,ABI.pool,true).restake(),"Rewards restaked (compounded) ✓"); };
+    $("wpClaim").after(b);
+  } else if(!on && b){ b.remove(); }
+}
+
+// tabs
+$("tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
+  ["stake","wstake","migrate","watt","buy"].forEach(p=>$("pane-"+p).style.display = p===t.dataset.t?"block":"none");
+  if(t.dataset.t==="buy") renderGallery();
+  if(t.dataset.t==="wstake") renderWattPool(); });
+$("connect").onclick=connect;
+$("net").onchange=e=>switchNet(Number(e.target.value));
+$("refreshStake").onclick=refreshAll;
+
+// stake — per-component Stake buttons are wired in renderOwned()
+$("approveItems").onclick=()=>tx(c(cur().items,ABI.erc1155,true).setApprovalForAll(cur().mg,true),"Items approved");
+$("selectAll").onclick=()=>{ const boxes=[...$("ownedGallery").querySelectorAll(".chk")]; const anyOff=boxes.some(b=>!b.checked); boxes.forEach(b=>b.checked=anyOff); };
+$("stakeSelected").onclick=async()=>{
+  if(!signer) return toast("Connect your wallet first","err");
+  const picks=[...$("ownedGallery").querySelectorAll(".g-card")].filter(card=>card.querySelector(".chk").checked)
+    .map(card=>{ const max=Number(card.dataset.max); let a=Math.floor(Number(card.querySelector(".amt").value)||1); a=Math.max(1,Math.min(max,a)); return { id:Number(card.dataset.id), amt:a }; });
+  if(!picks.length) return toast("Tick at least one component to stake","err");
+  const mg=c(cur().mg,ABI.mg,true);
+  let done=0;
+  for(const p of picks){
+    try{ toast(`Staking ${p.amt}× #${p.id} — confirm in wallet (${done+1}/${picks.length})…`);
+      const t=await mg.stake(p.id,p.amt,false); await t.wait(); done++;
+    }catch(e){ toast("Stopped at #"+p.id+": "+((e.shortMessage||e.reason||e.message)+"").slice(0,80),"err"); break; }
+  }
+  if(done) toast(`Staked ${done} component type${done>1?"s":""} — earning WATT ✓`,"ok");
+  refreshAll();
+};
+const doClaim=()=>{ if(!signer) return toast("Connect your wallet first","err"); tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed ✓"); };
+$("claim").onclick=doClaim; $("claimBig").onclick=doClaim;
+// WATT staking pool
+function wpAmtWei(){ const v=($("wpAmt").value||"").trim(); if(!v||Number(v)<=0) return null; try{ return ethers.parseEther(v);}catch{ return null; } }
+$("wpMax").onclick=()=>{ $("wpAmt").value = ethers.formatEther(_wp.bal); };
+$("wpStake").onclick=async()=>{
+  if(!signer) return toast("Connect your wallet first","err");
+  const amt=wpAmtWei(); if(amt===null) return toast("Enter a WATT amount","err");
+  if(amt>_wp.bal) return toast("Amount exceeds your WATT balance","err");
+  const w=c(cur().watt,ABI.erc20,true);
+  try{
+    const allow=await w.allowance(addr,cur().wattPool);
+    if(allow<amt){ toast("Approve WATT…"); const at=await w.approve(cur().wattPool,amt); await at.wait(); }
+    tx(c(cur().wattPool,ABI.pool,true).stake(amt),"WATT staked — now earning purchase fees ✓");
+  }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); }
+};
+$("wpUnstake").onclick=()=>{ if(!signer) return toast("Connect your wallet first","err");
+  const amt=wpAmtWei(); if(amt===null) return toast("Enter a WATT amount to unstake","err");
+  if(amt>_wp.staked) return toast("Amount exceeds your staked WATT","err");
+  tx(c(cur().wattPool,ABI.pool,true).unstake(amt),"WATT unstaked (principal returned) ✓"); };
+$("wpClaim").onclick=()=>{ if(!signer) return toast("Connect your wallet first","err");
+  tx(c(cur().wattPool,ABI.pool,true).claim(),"Pool rewards claimed ✓"); };
+// migrate
+$("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
+$("refreshMig").onclick=refreshAll;
+$("migAll").onclick=()=>{ if(!classicHeld.length) return toast("No classic components to swap","err");
+  const ids=classicHeld.map(h=>h.id), amts=classicHeld.map(h=>h.amount);
+  tx(c(cur().migrator,ABI.migrator,true).migrate(ids,amts),`Swapped all ${ids.length} component type(s) 1:1`); };
+// watt
+$("approveOldWatt").onclick=()=>tx(c(cur().oldWatt,ABI.erc20,true).approve(cur().wattSwap,ethers.MaxUint256),"Old WATT approved");
+$("swapWatt").onclick=()=>{ const a=$("swAmt").value; if(!a) return toast("Enter an amount","err");
+  tx(c(cur().wattSwap,ABI.wattSwap,true).migrate(ethers.parseEther(a)),"Swapped to new WATT"); };
+$("approveVault").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().vault,ethers.MaxUint256),"Vault approved");
+$("depBtn").onclick=()=>{ const a=$("depAmt").value; if(!a) return toast("Enter an amount","err");
+  tx(c(cur().vault,ABI.vault,true).depositToken(cur().watt,ethers.parseEther(a)),"Deposited to vault"); };
+$("wdBtn").onclick=()=>tx(c(cur().vault,ABI.vault,true).withdrawAll(cur().watt),"Withdrawn to wallet");
+// buy — auto-approve WATT for the shop if the allowance won't cover the price,
+// so a per-purchase (exact-amount) approval never leaves you stuck at 0.
+$("approveShop").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().shop,ethers.MaxUint256),"Shop approved (unlimited)");
+async function buyItem(it){
+  if(!signer) return toast("Connect your wallet first","err");
+  try{
+    const need = ethers.parseEther(String(it.price||0));
+    if(need > 0n){
+      const al = await c(cur().watt, ABI.erc20).allowance(addr, cur().shop);
+      if(al < need){ toast("Approving WATT for the shop…"); await (await c(cur().watt,ABI.erc20,true).approve(cur().shop, ethers.MaxUint256)).wait(); }
+    }
+    await tx(c(cur().shop, ABI.shop, true).buyWithWatt(it.id, 1), (it.free?"Minted ":"Bought ")+it.name);
+  }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,90),"err"); }
+}
+
+// read-only provider before connect
+provider = new ethers.JsonRpcProvider(CFG[137].rpc);
+</script>
+</body>
+</html>
