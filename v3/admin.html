@@ -7,6 +7,9 @@
   *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
   .wrap{max-width:720px;margin:0 auto;padding:28px 20px 80px}
   h1{font-size:20px}.logo b{color:var(--gold)}
+  h1.logo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  h1.logo img{height:30px;width:auto}
+  h1.logo .sub{color:var(--dim);font-weight:600;font-size:15px}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
   select,button{font-family:inherit;font-size:14px}
   select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
@@ -23,7 +26,7 @@
   .pill.done{background:#12301f;color:var(--ok)}
 </style></head><body>
 <div class="wrap">
-  <h1 class="logo">⛏ THE <b>MINING GAME</b> · Deployer Multisig</h1>
+  <h1 class="logo"><img src="mg-logo.png" alt="The Mining Game"><span class="sub">· Deployer Multisig</span></h1>
   <p class="muted">Grant the ComponentMigrator mint rights on the item collection, so old→new swaps can mint.
     This targets the deployer multisig <code>0xc49699a99177a058439Ac7E3D2F5aF03d95e1D99</code> (2-of-3).</p>
   <div class="row">

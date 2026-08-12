@@ -15,7 +15,22 @@
   *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
   a{color:var(--cyan)}
   header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:10}
-  .logo{font-weight:800;letter-spacing:-.02em;font-size:18px}.logo b{color:var(--gold)}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;font-size:18px}.logo b{color:var(--gold)}
+  .logo img{height:30px;width:auto;display:block}
+  .logo .sub{color:var(--dim);font-weight:600;font-size:14px;letter-spacing:0}
+  .earnhero{display:flex;align-items:center;gap:18px;flex-wrap:wrap;background:linear-gradient(135deg,rgba(255,210,63,.12),rgba(46,230,214,.06));border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-bottom:16px}
+  .earnhero .wattbig{width:66px;height:66px;flex:0 0 auto;filter:drop-shadow(0 0 12px rgba(255,210,63,.45));animation:wattpulse 3.2s ease-in-out infinite}
+  @keyframes wattpulse{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.04)}}
+  @media (prefers-reduced-motion:reduce){.earnhero .wattbig{animation:none}}
+  .earnmid{flex:1 1 220px;min-width:0}
+  .earnlabel{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .earnval{display:flex;align-items:baseline;gap:8px;font-family:var(--mono);font-weight:800;line-height:1.05;margin-top:2px}
+  .earnval #pendingBig{font-size:34px;color:var(--gold);font-variant-numeric:tabular-nums}
+  .earnval .earnunit{font-size:14px;color:var(--dim);letter-spacing:.04em}
+  .earnsub{font-size:12.5px;color:var(--dim);margin-top:4px}
+  .claimbtn{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(180deg,#ffe071,#e9b400);color:#3a2a00;border:0;border-radius:12px;padding:13px 20px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 4px 14px rgba(233,180,0,.35);flex:0 0 auto}
+  .claimbtn:hover{filter:brightness(1.05)}.claimbtn:disabled{opacity:.5;cursor:default;box-shadow:none}
+  .claimbtn img{width:22px;height:22px}
   .grow{flex:1}
   select,button{font-family:inherit;font-size:14px}
   select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
@@ -56,7 +71,7 @@
 </head>
 <body>
 <header>
-  <div class="logo">⛏ THE <b>MINING GAME</b> · Stake</div>
+  <div class="logo"><img src="mg-logo.png" alt="The Mining Game"><span class="sub">· Stake</span></div>
   <div class="grow"></div>
   <select id="net">
     <option value="137">🟣 Polygon</option>
@@ -74,6 +89,15 @@
   </div>
 
   <section id="pane-stake">
+    <div class="earnhero">
+      <img class="wattbig" src="watt.png" alt="WATT">
+      <div class="earnmid">
+        <div class="earnlabel">Your WATT earnings</div>
+        <div class="earnval"><span id="pendingBig">0.00</span><span class="earnunit">WATT</span></div>
+        <div class="earnsub" id="earnRate">Connect your wallet to start earning.</div>
+      </div>
+      <button id="claimBig" class="claimbtn" disabled><img src="watt.png" alt="">Claim WATT</button>
+    </div>
     <div class="card">
       <h2>Powered-off staking</h2>
       <p class="d">Stake your Mining Game components powered <b>off</b> to mint WATT by their stake weight, over time.
@@ -215,7 +239,7 @@ const CFG = {
 const ABI = {
   erc20:["function balanceOf(address) view returns (uint256)","function approve(address,uint256) returns (bool)","function allowance(address,address) view returns (uint256)","function decimals() view returns (uint8)"],
   erc1155:["function setApprovalForAll(address,bool)","function isApprovedForAll(address,address) view returns (bool)","function balanceOf(address,uint256) view returns (uint256)"],
-  mg:["function stake(uint256 id,uint256 amount,bool powered)","function unstake(uint256 idx)","function setPowered(uint256 idx,bool on)","function claimWatt()","function pendingWatt(address) view returns (uint256)","function positionCount(address) view returns (uint256)","function positions(address,uint256) view returns (uint256 id,uint256 amount,uint256 weight,uint256 rate,bool powered,bool active)","function acct(address) view returns (uint256 offWeight,uint256 onRate,uint256 fuel,uint256 pending,uint256 lastTs)"],
+  mg:["function stake(uint256 id,uint256 amount,bool powered)","function unstake(uint256 idx)","function setPowered(uint256 idx,bool on)","function claimWatt()","function pendingWatt(address) view returns (uint256)","function positionCount(address) view returns (uint256)","function positions(address,uint256) view returns (uint256 id,uint256 amount,uint256 weight,uint256 rate,bool powered,bool active)","function acct(address) view returns (uint256 offWeight,uint256 onRate,uint256 fuel,uint256 pending,uint256 lastTs)","function emitRatePerWeight() view returns (uint256)"],
   vault:["function deposit() payable","function depositToken(address,uint256)","function withdrawAll(address)","function balanceOf(address,address) view returns (uint256)"],
   migrator:["function migrate(uint256[] ids,uint256[] amounts)"],
   wattSwap:["function migrate(uint256 amount)"],
@@ -277,6 +301,19 @@ async function renderGallery(){
 }
 const $ = (id) => document.getElementById(id);
 const fmt = (w, dp=2) => { const n = Number(ethers.formatEther(w)); return n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString(undefined,{maximumFractionDigits:dp}); };
+// live WATT earnings counter: extrapolate on-chain accrual (offWeight*emitRatePerWeight/sec) between refreshes
+let _emitRate = null, _earn = null;
+function tickEarn(){
+  const el = document.getElementById("pendingBig"); if(!el) return;
+  if(!_earn){ el.textContent = "0.00"; return; }
+  const secs = (Date.now() - _earn.t0) / 1000;
+  const nowWei = _earn.base + BigInt(Math.floor(secs)) * _earn.ratePerSec; // integer-sec part on-chain-exact
+  const frac = (secs - Math.floor(secs)) * Number(ethers.formatEther(_earn.ratePerSec)); // sub-second, display only
+  const val = Number(ethers.formatEther(nowWei)) + frac;
+  const dp = val < 1 ? 6 : val < 1000 ? 4 : 2;
+  el.textContent = val.toLocaleString(undefined,{minimumFractionDigits:dp,maximumFractionDigits:dp});
+}
+setInterval(tickEarn, 100);
 function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="toast "+(kind||""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 6000); }
 const c = (a,abi,rw) => new ethers.Contract(a, abi, rw?signer:provider);
 function cur(){ return CFG[chainId]; }
@@ -306,8 +343,18 @@ async function refreshAll(){
     const w = c(cur().watt, ABI.erc20);
     $("wattbal").textContent = "WATT " + fmt(await w.balanceOf(addr));
     const mg = c(cur().mg, ABI.mg);
-    $("pending").textContent = fmt(await mg.pendingWatt(addr));
+    const pend = await mg.pendingWatt(addr);
+    $("pending").textContent = fmt(pend);
     const a = await mg.acct(addr); $("offw").textContent = a.offWeight.toString();
+    if(_emitRate===null){ try{ _emitRate = await mg.emitRatePerWeight(); }catch(e){ _emitRate = 0n; } }
+    // WATT accrues on-chain at offWeight * emitRatePerWeight per second (wei); tick it live client-side
+    _earn = { base: pend, ratePerSec: a.offWeight * (_emitRate||0n), t0: Date.now() };
+    const ratePerHr = Number(ethers.formatEther(_earn.ratePerSec)) * 3600;
+    $("earnRate").textContent = _earn.ratePerSec>0n
+      ? `Earning ${ratePerHr.toLocaleString(undefined,{maximumFractionDigits:3})} WATT / hour · powered-off weight ${a.offWeight}`
+      : "Stake a component below (powered off) to start earning WATT.";
+    $("claimBig").disabled = false;
+    tickEarn();
     const pc = await mg.positionCount(addr); $("poscount").textContent = pc.toString();
     renderPositions(mg, Number(pc));
     $("vaultWatt").textContent = fmt(await c(cur().vault, ABI.vault).balanceOf(addr, cur().watt));
@@ -402,7 +449,8 @@ $("stakeSelected").onclick=async()=>{
   if(done) toast(`Staked ${done} component type${done>1?"s":""} — earning WATT ✓`,"ok");
   refreshAll();
 };
-$("claim").onclick=()=>tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed");
+const doClaim=()=>{ if(!signer) return toast("Connect your wallet first","err"); tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed ✓"); };
+$("claim").onclick=doClaim; $("claimBig").onclick=doClaim;
 // migrate
 $("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
 $("refreshMig").onclick=refreshAll;
