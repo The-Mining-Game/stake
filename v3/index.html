@@ -253,7 +253,7 @@ async function renderGallery(){
       <div class="g-body"><div class="gn">${it.name}</div>
         <div class="gp ${it.free?'free':''}">${it.free?"FREE MINT":it.price.toLocaleString()+" ⚡"}</div>
         <button data-id="${it.id}">${it.free?"Mint free":"Buy"}</button></div>`;
-    el.querySelector("button").onclick = ()=> tx(c(cur().shop, ABI.shop, true).buyWithWatt(it.id, 1), (it.free?"Minted ":"Bought ")+it.name);
+    el.querySelector("button").onclick = ()=> buyItem(it);
     g.appendChild(el);
     if(!isImg && (url || it.scene)) jobs.push({ el, url, scene: it.scene });
   }
@@ -364,8 +364,20 @@ $("approveVault").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().vaul
 $("depBtn").onclick=()=>{ const a=$("depAmt").value; if(!a) return toast("Enter an amount","err");
   tx(c(cur().vault,ABI.vault,true).depositToken(cur().watt,ethers.parseEther(a)),"Deposited to vault"); };
 $("wdBtn").onclick=()=>tx(c(cur().vault,ABI.vault,true).withdrawAll(cur().watt),"Withdrawn to wallet");
-// buy — gallery renders lazily on tab open; per-card buttons wired in renderGallery
-$("approveShop").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().shop,ethers.MaxUint256),"Shop approved");
+// buy — auto-approve WATT for the shop if the allowance won't cover the price,
+// so a per-purchase (exact-amount) approval never leaves you stuck at 0.
+$("approveShop").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().shop,ethers.MaxUint256),"Shop approved (unlimited)");
+async function buyItem(it){
+  if(!signer) return toast("Connect your wallet first","err");
+  try{
+    const need = ethers.parseEther(String(it.price||0));
+    if(need > 0n){
+      const al = await c(cur().watt, ABI.erc20).allowance(addr, cur().shop);
+      if(al < need){ toast("Approving WATT for the shop…"); await (await c(cur().watt,ABI.erc20,true).approve(cur().shop, ethers.MaxUint256)).wait(); }
+    }
+    await tx(c(cur().shop, ABI.shop, true).buyWithWatt(it.id, 1), (it.free?"Minted ":"Bought ")+it.name);
+  }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,90),"err"); }
+}
 
 // read-only provider before connect
 provider = new ethers.JsonRpcProvider(CFG[137].rpc);
