@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Mining Game — Stake</title>
+<style>
+  :root{ --bg:#0c0a18; --panel:#151027; --panel2:#1c1636; --ink:#ece9fb; --dim:#a49dc4;
+    --line:#2a2246; --gold:#ffd23f; --cyan:#2ee6d6; --violet:#b892ff; --ok:#4fdd8a; --red:#ff6b5e;
+    --mono:ui-monospace,Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  a{color:var(--cyan)}
+  header{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:10}
+  .logo{font-weight:800;letter-spacing:-.02em;font-size:18px}.logo b{color:var(--gold)}
+  .grow{flex:1}
+  select,button{font-family:inherit;font-size:14px}
+  select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  button{background:var(--violet);color:#12091f;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+  button.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .wrap{max-width:940px;margin:0 auto;padding:24px 20px 80px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 22px}
+  .tab{padding:8px 14px;border-radius:20px;background:var(--panel);border:1px solid var(--line);color:var(--dim);cursor:pointer;font-size:13.5px}
+  .tab.on{background:var(--gold);color:#12091f;border-color:var(--gold);font-weight:700}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+  .card h2{margin:0 0 4px;font-size:18px}.card p.d{color:var(--dim);font-size:13.5px;margin:0 0 16px;max-width:64ch}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  input{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-family:var(--mono);font-size:13px;flex:1;min-width:120px}
+  label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:12px 0}
+  .kv>div{background:var(--panel);padding:12px 14px}.kv .k{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}.kv .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:flex;gap:12px;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+  .item .n{font-weight:600}.item .s{color:var(--dim);font-size:12px;font-family:var(--mono)}.item .grow{flex:1}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 18px;max-width:90vw;z-index:50;display:none;font-size:13.5px}
+  .toast.err{border-color:var(--red);color:var(--red)}.toast.ok{border-color:var(--ok);color:var(--ok)}
+  code{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  .muted{color:var(--dim);font-size:12.5px}
+  .warn{border-left:2px solid var(--gold);padding-left:12px;color:var(--dim);font-size:12.5px;margin:10px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">⛏ THE <b>MINING GAME</b> · Stake</div>
+  <div class="grow"></div>
+  <select id="net">
+    <option value="137">🟣 Polygon</option>
+    <option value="2330">🟠 Altcoinchain</option>
+  </select>
+  <span id="wattbal" class="muted"></span>
+  <button id="connect">Connect Wallet</button>
+</header>
+<div class="wrap">
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-t="stake">Stake &amp; Claim</div>
+    <div class="tab" data-t="migrate">Migrate old → new</div>
+    <div class="tab" data-t="watt">WATT</div>
+    <div class="tab" data-t="buy">Buy components</div>
+  </div>
+
+  <section id="pane-stake">
+    <div class="card">
+      <h2>Powered-off staking</h2>
+      <p class="d">Stake your Mining Game components powered <b>off</b> to mint WATT by their stake weight, over time.
+        Claim your earned WATT anytime (you just pay gas). Power a rig <b>on</b> to mine instead — that burns WATT.</p>
+      <div class="kv">
+        <div><div class="k">Pending WATT</div><div class="v" id="pending">—</div></div>
+        <div><div class="k">Off-weight staked</div><div class="v" id="offw">—</div></div>
+        <div><div class="k">Positions</div><div class="v" id="poscount">—</div></div>
+      </div>
+      <div class="row"><button id="claim">Claim WATT</button><button class="ghost" id="refreshStake">Refresh</button></div>
+      <h2 style="margin-top:18px;font-size:15px">Stake a component</h2>
+      <p class="muted">Stake weights come from the on-chain GameConfig. New items you hold are stakeable.</p>
+      <div class="row">
+        <div style="flex:1"><label>Component id</label><input id="stakeId" placeholder="e.g. 5 (GP50)"></div>
+        <div style="flex:1"><label>Amount</label><input id="stakeAmt" placeholder="1"></div>
+        <button id="approveItems" class="ghost">Approve items</button>
+        <button id="stakeBtn">Stake (off)</button>
+      </div>
+      <div class="list" id="positions"></div>
+    </div>
+  </section>
+
+  <section id="pane-migrate" style="display:none">
+    <div class="card">
+      <h2>Swap classic components 1:1</h2>
+      <p class="d">Holders of the original Mining Game NFTs swap them one-for-one for the new V3 components.
+        Your classic tokens are retired and the same id/amount is minted on the new collection.</p>
+      <div class="warn" id="migWarn">The migrator must hold mint rights on the new collection (a one-time multisig setup) before swaps can complete.</div>
+      <div class="row">
+        <div style="flex:1"><label>Classic component id</label><input id="migId" placeholder="e.g. 5"></div>
+        <div style="flex:1"><label>Amount</label><input id="migAmt" placeholder="1"></div>
+        <button id="approveClassic" class="ghost">Approve classic</button>
+        <button id="migBtn">Swap 1:1</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pane-watt" style="display:none">
+    <div class="card">
+      <h2>Swap old WATT → new WATT (1:1)</h2>
+      <p class="d">Convert your legacy WATT to WATT v2 at 1:1 through the on-chain swap.</p>
+      <div class="row"><div style="flex:1"><label>Old WATT amount</label><input id="swAmt" placeholder="amount"></div>
+        <button id="approveOldWatt" class="ghost">Approve old WATT</button><button id="swapWatt">Swap → new WATT</button></div>
+      <div class="muted" id="oldWattBal"></div>
+    </div>
+    <div class="card">
+      <h2>Trade WATT (in the vault DEX)</h2>
+      <p class="d">Deposit / withdraw WATT and coins, and trade coin ↔ WATT at the live DEX price. Your rewards land here.</p>
+      <div class="kv"><div><div class="k">Vault WATT</div><div class="v" id="vaultWatt">—</div></div></div>
+      <div class="row">
+        <div style="flex:1"><label>Deposit WATT</label><input id="depAmt" placeholder="amount"></div>
+        <button id="approveVault" class="ghost">Approve</button><button id="depBtn">Deposit</button>
+        <button id="wdBtn" class="ghost">Withdraw all</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="pane-buy" style="display:none">
+    <div class="card">
+      <h2>Buy components</h2>
+      <p class="d">Buy new components from the shop with WATT (priced on-chain). Gen 2 parts unlock with progress.</p>
+      <div class="row">
+        <div style="flex:1"><label>Component id</label><input id="buyId" placeholder="e.g. 4 (TX120)"></div>
+        <div style="flex:1"><label>Amount</label><input id="buyAmt" placeholder="1"></div>
+        <button id="approveShop" class="ghost">Approve WATT</button><button id="buyBtn">Buy</button>
+      </div>
+      <p class="muted">Prices are in WATT; approve the shop to spend your WATT, then buy.</p>
+    </div>
+  </section>
+
+  <p class="muted" style="margin-top:24px">Contracts (same address on Polygon &amp; ALT): MiningGameV3 <code>0x856f59F1…5681f</code> · Vault <code>0x72A716F6…3acA</code> · Migrator <code>0x97BcC99f…9679</code>. WATTx coming soon.</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
+
+const CFG = {
+  137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com",
+    items:"0x0CDbf4926a8EdFFaa803B96f8fa90B065DE19Eb2", shop:"0xeE6B67c3993884F1b693A4a66e952Bb563463131",
+    mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
+    watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f", oldWatt:"0xE960d5076cd3169C343Ee287A2c3380A222e5839",
+    wattSwap:"0x90a0906a7e01a65f48bd35741681088E3FA6729c", classic:"0x970a8b10147e3459d3cbf56329b76ac18d329728",
+    migrator:"0x97BcC99ff34FA2cde929c97074011E8929F59679" },
+  2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://rpc.wattxchange.app",
+    items:"0x851fd0205348783444Fc9EDe99Ca2321681EC99b", shop:"0x92809C4a46b4D0F11a48BE21fF13202EA56DcEB1",
+    mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
+    watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D", oldWatt:"0x6645143e49B3a15d8F205658903a55E520444698",
+    wattSwap:"0xdFd07EBEEC3228D14b99f9f39EC71D884ABcbbF4", classic:"0xf9670e5D46834561813CA79854B3d7147BBbFfb2",
+    migrator:"0x97BcC99ff34FA2cde929c97074011E8929F59679" },
+};
+const ABI = {
+  erc20:["function balanceOf(address) view returns (uint256)","function approve(address,uint256) returns (bool)","function allowance(address,address) view returns (uint256)","function decimals() view returns (uint8)"],
+  erc1155:["function setApprovalForAll(address,bool)","function isApprovedForAll(address,address) view returns (bool)","function balanceOf(address,uint256) view returns (uint256)"],
+  mg:["function stake(uint256 id,uint256 amount,bool powered)","function unstake(uint256 idx)","function setPowered(uint256 idx,bool on)","function claimWatt()","function pendingWatt(address) view returns (uint256)","function positionCount(address) view returns (uint256)","function positions(address,uint256) view returns (uint256 id,uint256 amount,uint256 weight,uint256 rate,bool powered,bool active)","function acct(address) view returns (uint256 offWeight,uint256 onRate,uint256 fuel,uint256 pending,uint256 lastTs)"],
+  vault:["function deposit() payable","function depositToken(address,uint256)","function withdrawAll(address)","function balanceOf(address,address) view returns (uint256)"],
+  migrator:["function migrate(uint256[] ids,uint256[] amounts)"],
+  wattSwap:["function migrate(uint256 amount)"],
+  shop:["function buyWithWatt(uint256 id,uint256 amount)"],
+};
+let provider, signer, addr, chainId = 137;
+const $ = (id) => document.getElementById(id);
+const fmt = (w, dp=2) => { const n = Number(ethers.formatEther(w)); return n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString(undefined,{maximumFractionDigits:dp}); };
+function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="toast "+(kind||""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 6000); }
+const c = (a,abi,rw) => new ethers.Contract(a, abi, rw?signer:provider);
+function cur(){ return CFG[chainId]; }
+
+async function connect(){
+  if(!window.ethereum){ toast("No wallet found — install MetaMask","err"); return; }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts", []);
+  signer = await provider.getSigner(); addr = await signer.getAddress();
+  const net = await provider.getNetwork(); chainId = Number(net.chainId);
+  if(!CFG[chainId]){ await switchNet(137); }
+  $("net").value = String(chainId);
+  $("connect").textContent = addr.slice(0,6)+"…"+addr.slice(-4);
+  refreshAll();
+}
+async function switchNet(id){
+  try{ await window.ethereum.request({ method:"wallet_switchEthereumChain", params:[{chainId:CFG[id].hex}] }); }
+  catch(e){ toast("Switch your wallet to "+CFG[id].name,"err"); }
+  chainId=id; provider=new ethers.BrowserProvider(window.ethereum); signer=await provider.getSigner(); refreshAll();
+}
+async function tx(promise, okMsg){ try{ toast("Confirm in your wallet…"); const t=await promise; toast("Pending… "+t.hash.slice(0,12)); await t.wait(); toast(okMsg||"Done ✓","ok"); refreshAll(); }
+  catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); } }
+
+async function refreshAll(){
+  if(!addr) return;
+  try{
+    const w = c(cur().watt, ABI.erc20);
+    $("wattbal").textContent = "WATT " + fmt(await w.balanceOf(addr));
+    const mg = c(cur().mg, ABI.mg);
+    $("pending").textContent = fmt(await mg.pendingWatt(addr));
+    const a = await mg.acct(addr); $("offw").textContent = a.offWeight.toString();
+    const pc = await mg.positionCount(addr); $("poscount").textContent = pc.toString();
+    renderPositions(mg, Number(pc));
+    $("vaultWatt").textContent = fmt(await c(cur().vault, ABI.vault).balanceOf(addr, cur().watt));
+    $("oldWattBal").textContent = "Old WATT balance: " + fmt(await c(cur().oldWatt, ABI.erc20).balanceOf(addr));
+  }catch(e){ /* view read hiccup */ }
+}
+async function renderPositions(mg, n){
+  const box=$("positions"); box.innerHTML="";
+  for(let i=0;i<n;i++){ const p=await mg.positions(addr,i); if(!p.active) continue;
+    const el=document.createElement("div"); el.className="item";
+    el.innerHTML=`<div><div class="n">Component #${p.id} ×${p.amount}</div><div class="s">${p.powered?"ON (mining)":"OFF (earning)"} · weight ${p.weight}</div></div><div class="grow"></div>`;
+    const bp=document.createElement("button"); bp.className="ghost"; bp.textContent=p.powered?"Power off":"Power on";
+    bp.onclick=()=>tx(mg.setPowered(i,!p.powered),"Power toggled");
+    const bu=document.createElement("button"); bu.textContent="Unstake"; bu.onclick=()=>tx(mg.unstake(i),"Unstaked");
+    el.append(bp,bu); box.appendChild(el);
+  }
+}
+
+// tabs
+$("tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return;
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
+  ["stake","migrate","watt","buy"].forEach(p=>$("pane-"+p).style.display = p===t.dataset.t?"block":"none"); });
+$("connect").onclick=connect;
+$("net").onchange=e=>switchNet(Number(e.target.value));
+$("refreshStake").onclick=refreshAll;
+
+// stake
+$("approveItems").onclick=()=>tx(c(cur().items,ABI.erc1155,true).setApprovalForAll(cur().mg,true),"Items approved");
+$("stakeBtn").onclick=()=>{ const id=+$("stakeId").value, amt=+$("stakeAmt").value||1; if(!id) return toast("Enter a component id","err");
+  tx(c(cur().mg,ABI.mg,true).stake(id,amt,false),"Staked (off) — earning WATT"); };
+$("claim").onclick=()=>tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed");
+// migrate
+$("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
+$("migBtn").onclick=()=>{ const id=+$("migId").value, amt=+$("migAmt").value||1; if(!id) return toast("Enter a classic id","err");
+  tx(c(cur().migrator,ABI.migrator,true).migrate([id],[amt]),"Swapped 1:1"); };
+// watt
+$("approveOldWatt").onclick=()=>tx(c(cur().oldWatt,ABI.erc20,true).approve(cur().wattSwap,ethers.MaxUint256),"Old WATT approved");
+$("swapWatt").onclick=()=>{ const a=$("swAmt").value; if(!a) return toast("Enter an amount","err");
+  tx(c(cur().wattSwap,ABI.wattSwap,true).migrate(ethers.parseEther(a)),"Swapped to new WATT"); };
+$("approveVault").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().vault,ethers.MaxUint256),"Vault approved");
+$("depBtn").onclick=()=>{ const a=$("depAmt").value; if(!a) return toast("Enter an amount","err");
+  tx(c(cur().vault,ABI.vault,true).depositToken(cur().watt,ethers.parseEther(a)),"Deposited to vault"); };
+$("wdBtn").onclick=()=>tx(c(cur().vault,ABI.vault,true).withdrawAll(cur().watt),"Withdrawn to wallet");
+// buy
+$("approveShop").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().shop,ethers.MaxUint256),"Shop approved");
+$("buyBtn").onclick=()=>{ const id=+$("buyId").value, amt=+$("buyAmt").value||1; if(!id) return toast("Enter a component id","err");
+  tx(c(cur().shop,ABI.shop,true).buyWithWatt(id,amt),"Bought"); };
+
+// read-only provider before connect
+provider = new ethers.JsonRpcProvider(CFG[137].rpc);
+</script>
+</body>
+</html>
