@@ -87,12 +87,9 @@
       <p class="d">Holders of the original Mining Game NFTs swap them one-for-one for the new V3 components.
         Your classic tokens are retired and the same id/amount is minted on the new collection.</p>
       <div class="warn" id="migWarn">The migrator must hold mint rights on the new collection (a one-time multisig setup) before swaps can complete.</div>
-      <div class="row">
-        <div style="flex:1"><label>Classic component id</label><input id="migId" placeholder="e.g. 5"></div>
-        <div style="flex:1"><label>Amount</label><input id="migAmt" placeholder="1"></div>
-        <button id="approveClassic" class="ghost">Approve classic</button>
-        <button id="migBtn">Swap 1:1</button>
-      </div>
+      <div class="row"><button id="approveClassic" class="ghost">Approve classic collection</button><button class="ghost" id="migAll">Swap ALL below</button><button class="ghost" id="refreshMig">Refresh</button></div>
+      <label style="margin:14px 0 4px;display:block">Your classic components</label>
+      <div class="list" id="classicList"><p class="muted" id="classicEmpty">Connect your wallet to see the old NFTs you can swap.</p></div>
     </div>
   </section>
 
@@ -159,7 +156,19 @@ const ABI = {
   wattSwap:["function migrate(uint256 amount)"],
   shop:["function buyWithWatt(uint256 id,uint256 amount)"],
 };
+// component id → name + BSV asset key for thumbnails (from the game catalog)
+const NAMES = { 1:["Gaming PC","pc.glb"], 2:["Genesis Badge","badge.webp"], 3:["XL1 Processor","cpu.glb"],
+  4:["TX120 GPU","gpu_tx120.glb"], 5:["GP50 GPU","gpu_gp50.glb"], 8:["TX190 GPU"], 9:["XL190 CPU"],
+  10:["GP720 GPU"], 11:["GPX880 GPU"], 12:["XXL270 CPU"], 13:["Bit Hammer ASIC"], 14:["Mining Rig Frame"],
+  17:["Red Mouse"], 18:["RGB Keyboard"], 19:["Server Tower"], 23:["LC23 Monitor"] };
+const CLASSIC_IDS = Object.keys(NAMES).map(Number);
+const BSV_ORIGIN = { "pc.glb":"29ef03b0e0aabb4c9adef4c0c7f1f37aa11567e554366d49bc90e369cf4c7994_0",
+  "cpu.glb":"366ff5a850a655727b8a28178556a86e19f06a81da34a35d5c03b48c885a16a8_0",
+  "gpu_tx120.glb":"9db877b8694330ab9cd56a93f14680a1a1cee0b0df0b526865fde2ebca9d31a7_0",
+  "gpu_gp50.glb":"3a44c183f158d2627133fea83fa98a9522c4ee5b7def5ae6d9a7c9e011903054_0",
+  "badge.webp":"a54eaebda42a364c9eb81b6940fa29de780aae8c175e956b889d81ac4ff4e0c8_0" };
 let provider, signer, addr, chainId = 137;
+let classicHeld = []; // [{id, amount}]
 const $ = (id) => document.getElementById(id);
 const fmt = (w, dp=2) => { const n = Number(ethers.formatEther(w)); return n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString(undefined,{maximumFractionDigits:dp}); };
 function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="toast "+(kind||""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 6000); }
@@ -197,7 +206,28 @@ async function refreshAll(){
     renderPositions(mg, Number(pc));
     $("vaultWatt").textContent = fmt(await c(cur().vault, ABI.vault).balanceOf(addr, cur().watt));
     $("oldWattBal").textContent = "Old WATT balance: " + fmt(await c(cur().oldWatt, ABI.erc20).balanceOf(addr));
+    renderClassic();
   }catch(e){ /* view read hiccup */ }
+}
+// scan the classic collection for everything the user owns, show name + amount + swap
+async function renderClassic(){
+  const classic = new ethers.Contract(cur().classic, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"], provider);
+  const accts = CLASSIC_IDS.map(()=>addr);
+  let bals; try{ bals = await classic.balanceOfBatch(accts, CLASSIC_IDS); }catch(e){ return; }
+  classicHeld = [];
+  CLASSIC_IDS.forEach((id,i)=>{ if(bals[i] > 0n) classicHeld.push({ id, amount: bals[i] }); });
+  const box = $("classicList"); box.innerHTML = "";
+  if(!classicHeld.length){ box.innerHTML = '<p class="muted">No classic Mining Game components found in this wallet on '+cur().name+'.</p>'; return; }
+  for(const h of classicHeld){
+    const nm = (NAMES[h.id]||["Component #"+h.id])[0];
+    const key = (NAMES[h.id]||[])[1]; const o = key && BSV_ORIGIN[key];
+    const el = document.createElement("div"); el.className = "item";
+    const thumb = o ? `<img src="https://ordinals.gorillapool.io/content/${o}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:#0c0a18" onerror="this.style.display='none'">` : "";
+    el.innerHTML = `${thumb}<div><div class="n">${nm}</div><div class="s">id ${h.id} · you own <b>×${h.amount}</b></div></div><div class="grow"></div>`;
+    const b = document.createElement("button"); b.textContent = "Swap ×"+h.amount; b.dataset.id = h.id; b.dataset.amt = h.amount;
+    b.onclick = ()=> tx(c(cur().migrator, ABI.migrator, true).migrate([h.id],[h.amount]), `Swapped ${h.amount}× ${nm} 1:1`);
+    el.appendChild(b); box.appendChild(el);
+  }
 }
 async function renderPositions(mg, n){
   const box=$("positions"); box.innerHTML="";
@@ -226,8 +256,10 @@ $("stakeBtn").onclick=()=>{ const id=+$("stakeId").value, amt=+$("stakeAmt").val
 $("claim").onclick=()=>tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed");
 // migrate
 $("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
-$("migBtn").onclick=()=>{ const id=+$("migId").value, amt=+$("migAmt").value||1; if(!id) return toast("Enter a classic id","err");
-  tx(c(cur().migrator,ABI.migrator,true).migrate([id],[amt]),"Swapped 1:1"); };
+$("refreshMig").onclick=refreshAll;
+$("migAll").onclick=()=>{ if(!classicHeld.length) return toast("No classic components to swap","err");
+  const ids=classicHeld.map(h=>h.id), amts=classicHeld.map(h=>h.amount);
+  tx(c(cur().migrator,ABI.migrator,true).migrate(ids,amts),`Swapped all ${ids.length} component type(s) 1:1`); };
 // watt
 $("approveOldWatt").onclick=()=>tx(c(cur().oldWatt,ABI.erc20,true).approve(cur().wattSwap,ethers.MaxUint256),"Old WATT approved");
 $("swapWatt").onclick=()=>{ const a=$("swAmt").value; if(!a) return toast("Enter an amount","err");
