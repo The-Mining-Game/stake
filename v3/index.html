@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Mining Game — Stake</title>
+<script type="importmap">{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+}}</script>
 <style>
   :root{ --bg:#0c0a18; --panel:#151027; --panel2:#1c1636; --ink:#ece9fb; --dim:#a49dc4;
     --line:#2a2246; --gold:#ffd23f; --cyan:#2ee6d6; --violet:#b892ff; --ok:#4fdd8a; --red:#ff6b5e;
@@ -37,6 +41,14 @@
   code{font-family:var(--mono);font-size:12px;color:var(--dim)}
   .muted{color:var(--dim);font-size:12.5px}
   .warn{border-left:2px solid var(--gold);padding-left:12px;color:var(--dim);font-size:12.5px;margin:10px 0}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:8px}
+  .g-card{border:1px solid var(--line);border-radius:12px;background:var(--panel2);overflow:hidden;display:flex;flex-direction:column}
+  .g-frame{aspect-ratio:1;background:radial-gradient(circle at 50% 40%,#1c1636,#0c0a18);position:relative}
+  .g-frame model-viewer,.g-frame img{width:100%;height:100%}
+  .g-frame .g2{position:absolute;top:8px;right:8px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:2px 6px;border-radius:5px;background:rgba(255,210,63,.15);color:var(--gold)}
+  .g-body{padding:10px 12px 12px}.g-body .gn{font-weight:600;font-size:13.5px}.g-body .gp{font-family:var(--mono);font-size:12px;color:var(--gold);margin:2px 0 8px}
+  .g-body button{width:100%}
+  .free{color:var(--cyan)!important}
 </style>
 </head>
 <body>
@@ -116,13 +128,9 @@
   <section id="pane-buy" style="display:none">
     <div class="card">
       <h2>Buy components</h2>
-      <p class="d">Buy new components from the shop with WATT (priced on-chain). Gen 2 parts unlock with progress.</p>
-      <div class="row">
-        <div style="flex:1"><label>Component id</label><input id="buyId" placeholder="e.g. 4 (TX120)"></div>
-        <div style="flex:1"><label>Amount</label><input id="buyAmt" placeholder="1"></div>
-        <button id="approveShop" class="ghost">Approve WATT</button><button id="buyBtn">Buy</button>
-      </div>
-      <p class="muted">Prices are in WATT; approve the shop to spend your WATT, then buy.</p>
+      <p class="d">Each component, rendered from its on-chain BSV model. Prices are in WATT — approve the shop once, then buy. The Gaming PC case is a free mint.</p>
+      <div class="row"><button id="approveShop" class="ghost">Approve WATT for shop</button></div>
+      <div class="gallery" id="gallery"></div>
     </div>
   </section>
 
@@ -132,6 +140,52 @@
 
 <script type="module">
 import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+
+// One shared offscreen renderer turns each meshopt GLB into a thumbnail image
+// (13 live WebGL viewers would blow the browser's context limit; the game does
+// the same). Renders sequentially, caches by URL.
+const _thumbCache = {};
+let _tr, _tscene, _tcam, _gltf;
+function _thumbInit(){
+  _tr = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
+  _tr.setSize(320,320); _tr.outputColorSpace = THREE.SRGBColorSpace; _tr.toneMapping = THREE.ACESFilmicToneMapping; _tr.toneMappingExposure = 1.35;
+  _tscene = new THREE.Scene();
+  _tscene.add(new THREE.HemisphereLight(0xffffff,0x334, 2.2));
+  const d = new THREE.DirectionalLight(0xffffff, 2.6); d.position.set(2,3,4); _tscene.add(d);
+  const d2 = new THREE.DirectionalLight(0x99bbff, 1.2); d2.position.set(-3,1,-2); _tscene.add(d2);
+  _tcam = new THREE.PerspectiveCamera(38,1,0.01,100);
+  _gltf = new GLTFLoader(); _gltf.setMeshoptDecoder(MeshoptDecoder);
+}
+let _bundle; // the loaded gen2.glb (multi-scene)
+async function loadBundle(){ if(_bundle) return _bundle; if(!_tr) _thumbInit();
+  _bundle = await _gltf.loadAsync(assetUrl("gen2.glb")); return _bundle; }
+async function renderScene(sceneName){
+  const key = "bundle:"+sceneName; if(_thumbCache[key]) return _thumbCache[key];
+  const g = await loadBundle();
+  const sc = g.scenes.find(s=>s.name===sceneName); if(!sc) throw new Error("no scene "+sceneName);
+  return _renderObject(sc.clone(true), key);
+}
+async function renderThumb(url){
+  if(_thumbCache[url]) return _thumbCache[url];
+  if(!_tr) _thumbInit();
+  const g = await _gltf.loadAsync(url);
+  return _renderObject(g.scene, url);
+}
+function _renderObject(o, cacheKey){
+  const box = new THREE.Box3().setFromObject(o), size = new THREE.Vector3(), ctr = new THREE.Vector3();
+  box.getSize(size); box.getCenter(ctr);
+  o.position.sub(ctr);
+  const holder = new THREE.Group(); holder.add(o); holder.rotation.y = -0.6; _tscene.add(holder);
+  const r = Math.max(size.x,size.y,size.z) || 1;
+  _tcam.position.set(r*1.6, r*1.1, r*1.9); _tcam.lookAt(0,0,0);
+  _tr.render(_tscene, _tcam);
+  const data = _tr.domElement.toDataURL("image/png");
+  _tscene.remove(holder);
+  _thumbCache[cacheKey] = data; return data;
+}
 
 const CFG = {
   137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com",
@@ -166,9 +220,50 @@ const BSV_ORIGIN = { "pc.glb":"29ef03b0e0aabb4c9adef4c0c7f1f37aa11567e554366d49b
   "cpu.glb":"366ff5a850a655727b8a28178556a86e19f06a81da34a35d5c03b48c885a16a8_0",
   "gpu_tx120.glb":"9db877b8694330ab9cd56a93f14680a1a1cee0b0df0b526865fde2ebca9d31a7_0",
   "gpu_gp50.glb":"3a44c183f158d2627133fea83fa98a9522c4ee5b7def5ae6d9a7c9e011903054_0",
+  "gen2.glb":"109a1bba976772a4c40100bd2010cef8dd3fce7681bbc95d2a23eea3755606f5_0",
   "badge.webp":"a54eaebda42a364c9eb81b6940fa29de780aae8c175e956b889d81ac4ff4e0c8_0" };
 let provider, signer, addr, chainId = 137;
 let classicHeld = []; // [{id, amount}]
+// shop catalog: id, name, price(WATT), asset key (glb/webp), gen. free = price 0.
+const CATALOG = [
+  { id:1,  name:"Gaming PC",        price:0,     key:"pc.glb",        gen:1, free:true },
+  { id:3,  name:"XL1 Processor",    price:200,   key:"cpu.glb",       gen:1 },
+  { id:4,  name:"TX120 GPU",        price:700,   key:"gpu_tx120.glb", gen:1 },
+  { id:5,  name:"GP50 GPU",         price:1200,  key:"gpu_gp50.glb",  gen:1 },
+  { id:2,  name:"Genesis Badge",    price:20000, key:"badge.webp",    gen:1 },
+  { id:14, name:"Mining Rig Frame", price:8000,  gen:1, scene:"14_Mining_Rig_Frame" },
+  { id:9,  name:"XL190 CPU",        price:4500,  gen:2, scene:"9_XL_190_CPU" },
+  { id:8,  name:"TX190 GPU",        price:6000,  gen:2, scene:"8_TX_190" },
+  { id:12, name:"XXL270 CPU",       price:12000, gen:2, scene:"10_XXL_270_CPU" },
+  { id:10, name:"GP720 GPU",        price:14000, gen:2, scene:"10_GP_720_GPU" },
+  { id:11, name:"GPX880 GPU",       price:30000, gen:2, scene:"11_GPX_880_a" },
+  { id:13, name:"Bit Hammer ASIC",  price:60000, gen:2, scene:"13_Bit_Hammer_ASIC" },
+  { id:19, name:"Server Tower",     price:20000, gen:2, scene:"19_Server_Tower" },
+];
+function assetUrl(key){ const o = BSV_ORIGIN[key]; return o ? "https://ordinals.gorillapool.io/content/"+o : null; }
+async function renderGallery(){
+  const g = document.getElementById("gallery"); if(g.dataset.built) return; g.dataset.built = "1";
+  const jobs = [];
+  for(const it of CATALOG){
+    const url = it.key && assetUrl(it.key); const isImg = it.key && it.key.endsWith(".webp");
+    const frameInner = isImg ? `<img src="${url}" alt="${it.name}" loading="lazy">`
+      : `<div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">${url?"loading 3D…":"3D on-chain"}</div>`;
+    const el = document.createElement("div"); el.className = "g-card";
+    el.innerHTML = `<div class="g-frame">${frameInner}${it.gen===2?'<span class="g2">GEN 2</span>':''}</div>
+      <div class="g-body"><div class="gn">${it.name}</div>
+        <div class="gp ${it.free?'free':''}">${it.free?"FREE MINT":it.price.toLocaleString()+" ⚡"}</div>
+        <button data-id="${it.id}">${it.free?"Mint free":"Buy"}</button></div>`;
+    el.querySelector("button").onclick = ()=> tx(c(cur().shop, ABI.shop, true).buyWithWatt(it.id, 1), (it.free?"Minted ":"Bought ")+it.name);
+    g.appendChild(el);
+    if(!isImg && (url || it.scene)) jobs.push({ el, url, scene: it.scene });
+  }
+  // render 3D thumbnails one at a time (shared renderer): individual GLB or bundle scene
+  for(const j of jobs){
+    try{ const data = j.url ? await renderThumb(j.url) : await renderScene(j.scene);
+      const ph = j.el.querySelector(".g-frame .ph"); if(ph) ph.outerHTML = `<img src="${data}" alt="">`;
+    }catch(e){ const ph = j.el.querySelector(".g-frame .ph"); if(ph) ph.textContent = "model on-chain"; }
+  }
+}
 const $ = (id) => document.getElementById(id);
 const fmt = (w, dp=2) => { const n = Number(ethers.formatEther(w)); return n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString(undefined,{maximumFractionDigits:dp}); };
 function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="toast "+(kind||""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 6000); }
@@ -244,7 +339,8 @@ async function renderPositions(mg, n){
 // tabs
 $("tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return;
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
-  ["stake","migrate","watt","buy"].forEach(p=>$("pane-"+p).style.display = p===t.dataset.t?"block":"none"); });
+  ["stake","migrate","watt","buy"].forEach(p=>$("pane-"+p).style.display = p===t.dataset.t?"block":"none");
+  if(t.dataset.t==="buy") renderGallery(); });
 $("connect").onclick=connect;
 $("net").onchange=e=>switchNet(Number(e.target.value));
 $("refreshStake").onclick=refreshAll;
@@ -268,10 +364,8 @@ $("approveVault").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().vaul
 $("depBtn").onclick=()=>{ const a=$("depAmt").value; if(!a) return toast("Enter an amount","err");
   tx(c(cur().vault,ABI.vault,true).depositToken(cur().watt,ethers.parseEther(a)),"Deposited to vault"); };
 $("wdBtn").onclick=()=>tx(c(cur().vault,ABI.vault,true).withdrawAll(cur().watt),"Withdrawn to wallet");
-// buy
+// buy — gallery renders lazily on tab open; per-card buttons wired in renderGallery
 $("approveShop").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().shop,ethers.MaxUint256),"Shop approved");
-$("buyBtn").onclick=()=>{ const id=+$("buyId").value, amt=+$("buyAmt").value||1; if(!id) return toast("Enter a component id","err");
-  tx(c(cur().shop,ABI.shop,true).buyWithWatt(id,amt),"Bought"); };
 
 // read-only provider before connect
 provider = new ethers.JsonRpcProvider(CFG[137].rpc);
