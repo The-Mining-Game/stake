@@ -143,49 +143,58 @@ import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-// One shared offscreen renderer turns each meshopt GLB into a thumbnail image
-// (13 live WebGL viewers would blow the browser's context limit; the game does
-// the same). Renders sequentially, caches by URL.
-const _thumbCache = {};
-let _tr, _tscene, _tcam, _gltf;
-function _thumbInit(){
-  _tr = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
-  _tr.setSize(320,320); _tr.outputColorSpace = THREE.SRGBColorSpace; _tr.toneMapping = THREE.ACESFilmicToneMapping; _tr.toneMappingExposure = 1.35;
-  _tscene = new THREE.Scene();
-  _tscene.add(new THREE.HemisphereLight(0xffffff,0x334, 2.2));
-  const d = new THREE.DirectionalLight(0xffffff, 2.6); d.position.set(2,3,4); _tscene.add(d);
-  const d2 = new THREE.DirectionalLight(0x99bbff, 1.2); d2.position.set(-3,1,-2); _tscene.add(d2);
-  _tcam = new THREE.PerspectiveCamera(38,1,0.01,100);
-  _gltf = new GLTFLoader(); _gltf.setMeshoptDecoder(MeshoptDecoder);
+// Live, interactive 3D card viewers: each model auto-rotates and can be dragged
+// to spin on all axes. One shared render loop drives every viewer; only the ones
+// visible in the viewport are rendered so a full grid stays smooth.
+const _gltf = new GLTFLoader(); _gltf.setMeshoptDecoder(MeshoptDecoder);
+let _bundle;
+async function loadBundle(){ if(!_bundle) _bundle = await _gltf.loadAsync(assetUrl("gen2.glb")); return _bundle; }
+async function getObject(item){
+  if(item.scene){ const g = await loadBundle(); const sc = g.scenes.find(s=>s.name===item.scene);
+    if(!sc) throw new Error("no scene "+item.scene); return sc.clone(true); }
+  const g = await _gltf.loadAsync(assetUrl(item.key)); return g.scene;
 }
-let _bundle; // the loaded gen2.glb (multi-scene)
-async function loadBundle(){ if(_bundle) return _bundle; if(!_tr) _thumbInit();
-  _bundle = await _gltf.loadAsync(assetUrl("gen2.glb")); return _bundle; }
-async function renderScene(sceneName){
-  const key = "bundle:"+sceneName; if(_thumbCache[key]) return _thumbCache[key];
-  const g = await loadBundle();
-  const sc = g.scenes.find(s=>s.name===sceneName); if(!sc) throw new Error("no scene "+sceneName);
-  return _renderObject(sc.clone(true), key);
+const _viewers = [];
+function makeViewer(container, obj, orient){
+  const r = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+  r.setPixelRatio(Math.min(devicePixelRatio,2));
+  const w = container.clientWidth||200, h = container.clientHeight||200;
+  r.setSize(w,h); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.35;
+  container.innerHTML=""; container.appendChild(r.domElement);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff,0x223, 2.2));
+  const d = new THREE.DirectionalLight(0xffffff, 2.6); d.position.set(2,3,4); scene.add(d);
+  const d2 = new THREE.DirectionalLight(0x99bbff, 1.2); d2.position.set(-3,1,-2); scene.add(d2);
+  const cam = new THREE.PerspectiveCamera(38, w/h, 0.01, 100);
+  // center + orient the model
+  const box = new THREE.Box3().setFromObject(obj), size = new THREE.Vector3(), ctr = new THREE.Vector3();
+  box.getSize(size); box.getCenter(ctr); obj.position.sub(ctr);
+  const holder = new THREE.Group(); if(orient) holder.rotation.set(orient[0]||0,orient[1]||0,orient[2]||0);
+  holder.add(obj); scene.add(holder);
+  const rad = Math.max(size.x,size.y,size.z) || 1;
+  cam.position.set(rad*1.7, rad*1.2, rad*2.0);
+  const controls = new OrbitControls(cam, r.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.enablePan = false; controls.enableZoom = false; // don't hijack page scroll
+  controls.autoRotate = true; controls.autoRotateSpeed = 2.4;
+  controls.minPolarAngle = 0; controls.maxPolarAngle = Math.PI; // full vertical tumble
+  controls.target.set(0,0,0); controls.update();
+  const v = { r, scene, cam, controls, el: container };
+  _viewers.push(v);
+  return v;
 }
-async function renderThumb(url){
-  if(_thumbCache[url]) return _thumbCache[url];
-  if(!_tr) _thumbInit();
-  const g = await _gltf.loadAsync(url);
-  return _renderObject(g.scene, url);
+let _looping=false;
+function _loop(){
+  for(const v of _viewers){
+    const b = v.el.getBoundingClientRect();
+    if(b.bottom < 0 || b.top > innerHeight) continue; // off-screen: skip
+    v.controls.update(); v.r.render(v.scene, v.cam);
+  }
+  requestAnimationFrame(_loop);
 }
-function _renderObject(o, cacheKey){
-  const box = new THREE.Box3().setFromObject(o), size = new THREE.Vector3(), ctr = new THREE.Vector3();
-  box.getSize(size); box.getCenter(ctr);
-  o.position.sub(ctr);
-  const holder = new THREE.Group(); holder.add(o); holder.rotation.y = -0.6; _tscene.add(holder);
-  const r = Math.max(size.x,size.y,size.z) || 1;
-  _tcam.position.set(r*1.6, r*1.1, r*1.9); _tcam.lookAt(0,0,0);
-  _tr.render(_tscene, _tcam);
-  const data = _tr.domElement.toDataURL("image/png");
-  _tscene.remove(holder);
-  _thumbCache[cacheKey] = data; return data;
-}
+function startLoop(){ if(_looping) return; _looping=true; requestAnimationFrame(_loop); }
 
 const CFG = {
   137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com",
@@ -233,9 +242,9 @@ const CATALOG = [
   { id:2,  name:"Genesis Badge",    price:20000, key:"badge.webp",    gen:1 },
   { id:14, name:"Mining Rig Frame", price:8000,  gen:1, scene:"14_Mining_Rig_Frame" },
   { id:9,  name:"XL190 CPU",        price:4500,  gen:2, scene:"9_XL_190_CPU" },
-  { id:8,  name:"TX190 GPU",        price:6000,  gen:2, scene:"8_TX_190" },
+  { id:8,  name:"TX190 GPU",        price:6000,  gen:2, scene:"8_TX_190", rot:[Math.PI,0,0] },
   { id:12, name:"XXL270 CPU",       price:12000, gen:2, scene:"10_XXL_270_CPU" },
-  { id:10, name:"GP720 GPU",        price:14000, gen:2, scene:"10_GP_720_GPU" },
+  { id:10, name:"GP720 GPU",        price:14000, gen:2, scene:"10_GP_720_GPU", rot:[Math.PI,0,0] },
   { id:11, name:"GPX880 GPU",       price:30000, gen:2, scene:"11_GPX_880_a" },
   { id:13, name:"Bit Hammer ASIC",  price:60000, gen:2, scene:"13_Bit_Hammer_ASIC" },
   { id:19, name:"Server Tower",     price:20000, gen:2, scene:"19_Server_Tower" },
@@ -247,7 +256,7 @@ async function renderGallery(){
   for(const it of CATALOG){
     const url = it.key && assetUrl(it.key); const isImg = it.key && it.key.endsWith(".webp");
     const frameInner = isImg ? `<img src="${url}" alt="${it.name}" loading="lazy">`
-      : `<div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">${url?"loading 3D…":"3D on-chain"}</div>`;
+      : `<div class="frame3d" style="width:100%;height:100%"><div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">loading 3D…</div></div>`;
     const el = document.createElement("div"); el.className = "g-card";
     el.innerHTML = `<div class="g-frame">${frameInner}${it.gen===2?'<span class="g2">GEN 2</span>':''}</div>
       <div class="g-body"><div class="gn">${it.name}</div>
@@ -255,13 +264,13 @@ async function renderGallery(){
         <button data-id="${it.id}">${it.free?"Mint free":"Buy"}</button></div>`;
     el.querySelector("button").onclick = ()=> buyItem(it);
     g.appendChild(el);
-    if(!isImg && (url || it.scene)) jobs.push({ el, url, scene: it.scene });
+    if(!isImg && (url || it.scene)) jobs.push({ frame: el.querySelector(".frame3d"), it });
   }
-  // render 3D thumbnails one at a time (shared renderer): individual GLB or bundle scene
+  startLoop();
+  // build each live viewer sequentially (loading is serialized; rendering is shared)
   for(const j of jobs){
-    try{ const data = j.url ? await renderThumb(j.url) : await renderScene(j.scene);
-      const ph = j.el.querySelector(".g-frame .ph"); if(ph) ph.outerHTML = `<img src="${data}" alt="">`;
-    }catch(e){ const ph = j.el.querySelector(".g-frame .ph"); if(ph) ph.textContent = "model on-chain"; }
+    try{ const obj = await getObject(j.it); makeViewer(j.frame, obj, j.it.rot); }
+    catch(e){ const ph = j.frame.querySelector(".ph"); if(ph) ph.textContent = "model on-chain"; }
   }
 }
 const $ = (id) => document.getElementById(id);
