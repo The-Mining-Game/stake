@@ -67,6 +67,7 @@
   .stakerow .chk{width:15px;height:15px;accent-color:var(--violet);flex:0 0 auto}
   .stakerow .amt{width:52px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:var(--mono);font-size:12px}
   .free{color:var(--cyan)!important}
+  .amtbig{flex:1 1 160px;min-width:0;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-family:var(--mono);font-size:15px}
   /* ============ mobile / in-app wallet browsers ============ */
   html,body{max-width:100%;overflow-x:hidden}
   .mono,code,.addr{word-break:break-all;overflow-wrap:anywhere}
@@ -110,6 +111,7 @@
 <div class="wrap">
   <div class="tabs" id="tabs">
     <div class="tab on" data-t="stake">Stake &amp; Claim</div>
+    <div class="tab" data-t="wstake">Stake WATT</div>
     <div class="tab" data-t="migrate">Migrate old → new</div>
     <div class="tab" data-t="watt">WATT</div>
     <div class="tab" data-t="buy">Buy components</div>
@@ -143,6 +145,34 @@
       <div class="gallery" id="ownedGallery"><p class="muted" id="ownedEmpty">Connect your wallet to see your components.</p></div>
       <h2 style="margin-top:18px;font-size:15px">Staked positions</h2>
       <div class="list" id="positions"></div>
+    </div>
+  </section>
+
+  <section id="pane-wstake" style="display:none">
+    <div class="earnhero">
+      <img class="wattbig" src="watt.png" alt="WATT">
+      <div class="earnmid">
+        <div class="earnlabel">Your WATT-pool rewards</div>
+        <div class="earnval"><span id="wpPending">0.00</span><span class="earnunit">WATT</span></div>
+        <div class="earnsub" id="wpShare">Stake WATT to earn a share of every NFT purchase.</div>
+      </div>
+      <button id="wpClaim" class="claimbtn" disabled><img src="watt.png" alt="">Claim rewards</button>
+    </div>
+    <div class="card">
+      <h2>Stake WATT — earn back purchase fees</h2>
+      <p class="d">Every WATT spent buying NFTs in the shop is routed into this pool. Stakers share it <b>pro-rata</b> by their stake — so the more WATT you stake, the bigger your slice of the fees. Unstaking always returns your full principal; rewards are separate.</p>
+      <div class="kv">
+        <div><div class="k">Your staked WATT</div><div class="v" id="wpStaked">—</div></div>
+        <div><div class="k">Pool total staked</div><div class="v" id="wpTotal">—</div></div>
+        <div><div class="k">Fees distributed</div><div class="v" id="wpFunded">—</div></div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <input id="wpAmt" type="number" min="0" step="1" placeholder="WATT amount" class="amtbig">
+        <button id="wpMax" class="ghost">Max</button>
+        <button id="wpStake">Stake WATT</button>
+        <button id="wpUnstake" class="ghost">Unstake</button>
+      </div>
+      <p class="muted" id="wpCooldown" style="margin-top:10px"></p>
     </div>
   </section>
 
@@ -255,12 +285,14 @@ const CFG = {
     mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
     watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f", oldWatt:"0xE960d5076cd3169C343Ee287A2c3380A222e5839",
     wattSwap:"0x90a0906a7e01a65f48bd35741681088E3FA6729c", classic:"0x970a8b10147e3459d3cbf56329b76ac18d329728",
+    wattPool:"0x7E8FC9d7D7588F410E1399aC690F901268B08a8d",
     migrator:"0x97BcC99ff34FA2cde929c97074011E8929F59679" },
   2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://rpc.wattxchange.app",
     items:"0x851fd0205348783444Fc9EDe99Ca2321681EC99b", shop:"0x92809C4a46b4D0F11a48BE21fF13202EA56DcEB1",
     mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
     watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D", oldWatt:"0x6645143e49B3a15d8F205658903a55E520444698",
     wattSwap:"0xdFd07EBEEC3228D14b99f9f39EC71D884ABcbbF4", classic:"0xf9670e5D46834561813CA79854B3d7147BBbFfb2",
+    wattPool:"0xa3f8B04310380cD13Ec85B11420d1fc848af36C4",
     migrator:"0x97BcC99ff34FA2cde929c97074011E8929F59679" },
 };
 const ABI = {
@@ -271,6 +303,8 @@ const ABI = {
   migrator:["function migrate(uint256[] ids,uint256[] amounts)"],
   wattSwap:["function migrate(uint256 amount)"],
   shop:["function buyWithWatt(uint256 id,uint256 amount)"],
+  // WattStakingPool (v1 live). v2 adds restake()/lastClaim()/CLAIM_COOLDOWN — probed at runtime.
+  pool:["function stake(uint256 amount)","function unstake(uint256 amount)","function claim()","function restake()","function pending(address) view returns (uint256)","function balanceOf(address) view returns (uint256)","function totalStaked() view returns (uint256)","function totalFunded() view returns (uint256)","function totalClaimed() view returns (uint256)","function lastClaim(address) view returns (uint256)","function CLAIM_COOLDOWN() view returns (uint256)"],
 };
 // component id → name + BSV asset key for thumbnails (from the game catalog)
 const NAMES = { 1:["Gaming PC","pc.glb"], 2:["Genesis Badge","badge.webp"], 3:["XL1 Processor","cpu.glb"],
@@ -388,6 +422,7 @@ async function refreshAll(){
     $("oldWattBal").textContent = "Old WATT balance: " + fmt(await c(cur().oldWatt, ABI.erc20).balanceOf(addr));
     renderClassic();
     renderOwned();
+    renderWattPool();
   }catch(e){ /* view read hiccup */ }
 }
 // show the V3 components this wallet owns as 3D cards, each with a Stake button
@@ -449,11 +484,55 @@ async function renderPositions(mg, n){
   }
 }
 
+// ---- WATT staking pool (earn back NFT-purchase fees, pro-rata by stake) ----
+let _wp = { staked:0n, bal:0n, isV2:false, cooldownEnds:0 };
+async function renderWattPool(){
+  if(!addr) return;
+  try{
+    const p = c(cur().wattPool, ABI.pool), w = c(cur().watt, ABI.erc20);
+    const [staked, pend, total, funded, bal] = await Promise.all([
+      p.balanceOf(addr), p.pending(addr), p.totalStaked(), p.totalFunded(), w.balanceOf(addr) ]);
+    _wp.staked = staked; _wp.bal = bal;
+    $("wpStaked").textContent = fmt(staked);
+    $("wpTotal").textContent  = fmt(total);
+    $("wpFunded").textContent = fmt(funded);
+    $("wpPending").textContent = fmt(pend, 4);
+    const share = total>0n ? Number(staked*10000n/total)/100 : 0;
+    $("wpShare").textContent = staked>0n
+      ? `You hold ${share.toLocaleString(undefined,{maximumFractionDigits:2})}% of the pool — your slice of every NFT purchase.`
+      : "Stake WATT to earn a share of every NFT purchase.";
+    // v2 detection: cooldown + restake exist only on the upgraded pool
+    let cooldownMsg = "", canClaim = pend>0n;
+    try{
+      const [cd, last] = await Promise.all([ p.CLAIM_COOLDOWN(), p.lastClaim(addr) ]);
+      _wp.isV2 = true;
+      const ends = Number(last) + Number(cd); _wp.cooldownEnds = ends*1000;
+      const now = Math.floor(Date.now()/1000);
+      if(Number(last)>0 && now < ends){
+        const hrs = ((ends-now)/3600); cooldownMsg = `⏳ Next claim available in ${hrs>=1?hrs.toFixed(1)+' h':Math.ceil((ends-now)/60)+' min'} (24 h cooldown per address). You can Restake anytime.`;
+        canClaim = false;
+      } else cooldownMsg = "24 h cooldown between payout claims · Restake compounds anytime without cooldown.";
+      ensureRestakeBtn(true);
+    }catch(_){ _wp.isV2 = false; ensureRestakeBtn(false); cooldownMsg = ""; }
+    $("wpCooldown").textContent = cooldownMsg;
+    $("wpClaim").disabled = !canClaim;
+  }catch(e){ /* pool read hiccup */ }
+}
+function ensureRestakeBtn(on){
+  let b = $("wpRestake");
+  if(on && !b){ b=document.createElement("button"); b.id="wpRestake"; b.className="claimbtn"; b.style.marginLeft="8px";
+    b.innerHTML='<img src="watt.png" alt="">Claim &amp; Restake';
+    b.onclick=()=>{ if(!signer) return toast("Connect your wallet first","err"); tx(c(cur().wattPool,ABI.pool,true).restake(),"Rewards restaked (compounded) ✓"); };
+    $("wpClaim").after(b);
+  } else if(!on && b){ b.remove(); }
+}
+
 // tabs
 $("tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return;
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
-  ["stake","migrate","watt","buy"].forEach(p=>$("pane-"+p).style.display = p===t.dataset.t?"block":"none");
-  if(t.dataset.t==="buy") renderGallery(); });
+  ["stake","wstake","migrate","watt","buy"].forEach(p=>$("pane-"+p).style.display = p===t.dataset.t?"block":"none");
+  if(t.dataset.t==="buy") renderGallery();
+  if(t.dataset.t==="wstake") renderWattPool(); });
 $("connect").onclick=connect;
 $("net").onchange=e=>switchNet(Number(e.target.value));
 $("refreshStake").onclick=refreshAll;
@@ -478,6 +557,26 @@ $("stakeSelected").onclick=async()=>{
 };
 const doClaim=()=>{ if(!signer) return toast("Connect your wallet first","err"); tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed ✓"); };
 $("claim").onclick=doClaim; $("claimBig").onclick=doClaim;
+// WATT staking pool
+function wpAmtWei(){ const v=($("wpAmt").value||"").trim(); if(!v||Number(v)<=0) return null; try{ return ethers.parseEther(v);}catch{ return null; } }
+$("wpMax").onclick=()=>{ $("wpAmt").value = ethers.formatEther(_wp.bal); };
+$("wpStake").onclick=async()=>{
+  if(!signer) return toast("Connect your wallet first","err");
+  const amt=wpAmtWei(); if(amt===null) return toast("Enter a WATT amount","err");
+  if(amt>_wp.bal) return toast("Amount exceeds your WATT balance","err");
+  const w=c(cur().watt,ABI.erc20,true);
+  try{
+    const allow=await w.allowance(addr,cur().wattPool);
+    if(allow<amt){ toast("Approve WATT…"); const at=await w.approve(cur().wattPool,amt); await at.wait(); }
+    tx(c(cur().wattPool,ABI.pool,true).stake(amt),"WATT staked — now earning purchase fees ✓");
+  }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); }
+};
+$("wpUnstake").onclick=()=>{ if(!signer) return toast("Connect your wallet first","err");
+  const amt=wpAmtWei(); if(amt===null) return toast("Enter a WATT amount to unstake","err");
+  if(amt>_wp.staked) return toast("Amount exceeds your staked WATT","err");
+  tx(c(cur().wattPool,ABI.pool,true).unstake(amt),"WATT unstaked (principal returned) ✓"); };
+$("wpClaim").onclick=()=>{ if(!signer) return toast("Connect your wallet first","err");
+  tx(c(cur().wattPool,ABI.pool,true).claim(),"Pool rewards claimed ✓"); };
 // migrate
 $("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
 $("refreshMig").onclick=refreshAll;
