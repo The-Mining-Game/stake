@@ -24,6 +24,15 @@
   .toast.err{border-color:var(--red);color:var(--red)}.toast.ok{border-color:var(--ok);color:var(--ok)}
   .pill{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:12px;background:var(--panel);color:var(--dim)}
   .pill.done{background:#12301f;color:var(--ok)}
+  html,body{max-width:100%;overflow-x:hidden}code{word-break:break-all;overflow-wrap:anywhere}
+  @media (max-width:640px){
+    .wrap{padding:20px 14px 72px}
+    h1.logo img{height:24px}h1.logo .sub{font-size:13px}
+    .card{padding:16px 14px}
+    button,select{min-height:44px}
+    .row{gap:8px}
+    .prop button{flex:1 1 auto;margin-left:0!important}
+  }
 </style></head><body>
 <div class="wrap">
   <h1 class="logo"><img src="mg-logo.png" alt="The Mining Game"><span class="sub">· Deployer Multisig</span></h1>

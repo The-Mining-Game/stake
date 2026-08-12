@@ -67,6 +67,33 @@
   .stakerow .chk{width:15px;height:15px;accent-color:var(--violet);flex:0 0 auto}
   .stakerow .amt{width:52px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:var(--mono);font-size:12px}
   .free{color:var(--cyan)!important}
+  /* ============ mobile / in-app wallet browsers ============ */
+  html,body{max-width:100%;overflow-x:hidden}
+  .mono,code,.addr{word-break:break-all;overflow-wrap:anywhere}
+  @media (max-width:640px){
+    header{padding:10px 14px;gap:8px 10px}
+    .logo img{height:24px}.logo .sub{display:none}
+    #net{flex:1 1 130px;min-width:0}
+    #connect,#net{min-height:44px}
+    #wattbal{order:3;flex-basis:100%;font-size:12px}
+    .wrap{padding:16px 14px 72px}
+    .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px -14px 16px;padding:2px 14px;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{white-space:nowrap;flex:0 0 auto;padding:9px 15px;font-size:14px}
+    .card{padding:15px 14px;border-radius:12px;margin-bottom:14px}
+    .earnhero{padding:15px 14px;gap:12px}
+    .earnhero .wattbig{width:52px;height:52px}
+    .earnmid{flex:1 1 100%;order:2}
+    .earnval #pendingBig{font-size:27px}
+    .claimbtn{order:3;width:100%;justify-content:center;min-height:48px}
+    .gallery{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+    button{min-height:44px}.g-body button{min-height:42px}
+    .stakerow{font-size:12.5px}.stakerow .amt{width:56px;min-height:36px}
+    .kv{grid-template-columns:1fr 1fr}
+    .item{flex-wrap:wrap}.item button{flex:1 1 auto}
+    h2{font-size:16px}
+  }
+  @media (max-width:380px){ .gallery{grid-template-columns:1fr 1fr} .earnval #pendingBig{font-size:24px} }
 </style>
 </head>
 <body>
@@ -101,7 +128,7 @@
     <div class="card">
       <h2>Powered-off staking</h2>
       <p class="d">Stake your Mining Game components powered <b>off</b> to mint WATT by their stake weight, over time.
-        Claim your earned WATT anytime (you just pay gas). Power a rig <b>on</b> to mine instead — that burns WATT.</p>
+        Claim your earned WATT anytime (you just pay gas). To mine for coins instead, assemble a rig and power it on <b>in the game</b> — that burns WATT.</p>
       <div class="kv">
         <div><div class="k">Pending WATT</div><div class="v" id="pending">—</div></div>
         <div><div class="k">Off-weight staked</div><div class="v" id="offw">—</div></div>
@@ -414,11 +441,11 @@ async function renderPositions(mg, n){
   const box=$("positions"); box.innerHTML="";
   for(let i=0;i<n;i++){ const p=await mg.positions(addr,i); if(!p.active) continue;
     const el=document.createElement("div"); el.className="item";
-    el.innerHTML=`<div><div class="n">Component #${p.id} ×${p.amount}</div><div class="s">${p.powered?"ON (mining)":"OFF (earning)"} · weight ${p.weight}</div></div><div class="grow"></div>`;
-    const bp=document.createElement("button"); bp.className="ghost"; bp.textContent=p.powered?"Power off":"Power on";
-    bp.onclick=()=>tx(mg.setPowered(i,!p.powered),"Power toggled");
+    // Stake-site positions are powered-OFF earners only. Powering a rig ON to mine
+    // requires an assembled rig staked into a pool — that happens in the game, not here.
+    el.innerHTML=`<div><div class="n">Component #${p.id} ×${p.amount}</div><div class="s">⚡ earning WATT · weight ${p.weight}</div></div><div class="grow"></div>`;
     const bu=document.createElement("button"); bu.textContent="Unstake"; bu.onclick=()=>tx(mg.unstake(i),"Unstaked");
-    el.append(bp,bu); box.appendChild(el);
+    el.append(bu); box.appendChild(el);
   }
 }
 
