@@ -80,15 +80,11 @@
         <div><div class="k">Off-weight staked</div><div class="v" id="offw">—</div></div>
         <div><div class="k">Positions</div><div class="v" id="poscount">—</div></div>
       </div>
-      <div class="row"><button id="claim">Claim WATT</button><button class="ghost" id="refreshStake">Refresh</button></div>
-      <h2 style="margin-top:18px;font-size:15px">Stake a component</h2>
-      <p class="muted">Stake weights come from the on-chain GameConfig. New items you hold are stakeable.</p>
-      <div class="row">
-        <div style="flex:1"><label>Component id</label><input id="stakeId" placeholder="e.g. 5 (GP50)"></div>
-        <div style="flex:1"><label>Amount</label><input id="stakeAmt" placeholder="1"></div>
-        <button id="approveItems" class="ghost">Approve items</button>
-        <button id="stakeBtn">Stake (off)</button>
-      </div>
+      <div class="row"><button id="claim">Claim WATT</button><button id="approveItems" class="ghost">Approve items</button><button class="ghost" id="refreshStake">Refresh</button></div>
+      <h2 style="margin-top:18px;font-size:15px">Your components — stake to earn</h2>
+      <p class="muted">Your V3 Mining Game NFTs. Approve items once, then Stake a component (powered off) to mint WATT by its stake weight.</p>
+      <div class="gallery" id="ownedGallery"><p class="muted" id="ownedEmpty">Connect your wallet to see your components.</p></div>
+      <h2 style="margin-top:18px;font-size:15px">Staked positions</h2>
       <div class="list" id="positions"></div>
     </div>
   </section>
@@ -311,7 +307,31 @@ async function refreshAll(){
     $("vaultWatt").textContent = fmt(await c(cur().vault, ABI.vault).balanceOf(addr, cur().watt));
     $("oldWattBal").textContent = "Old WATT balance: " + fmt(await c(cur().oldWatt, ABI.erc20).balanceOf(addr));
     renderClassic();
+    renderOwned();
   }catch(e){ /* view read hiccup */ }
+}
+// show the V3 components this wallet owns as 3D cards, each with a Stake button
+let _ownedBuilt = "";
+async function renderOwned(){
+  const items = new ethers.Contract(cur().items, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"], provider);
+  const ids = CATALOG.map(it=>it.id);
+  let bals; try{ bals = await items.balanceOfBatch(ids.map(()=>addr), ids); }catch(e){ return; }
+  const owned = CATALOG.map((it,i)=>({it, n: bals[i]})).filter(x=>x.n>0n);
+  const sig = chainId+":"+owned.map(o=>o.it.id+"x"+o.n).join(",");
+  if(sig===_ownedBuilt) return; _ownedBuilt = sig; // avoid rebuilding viewers every refresh
+  const g = $("ownedGallery"); g.innerHTML = "";
+  if(!owned.length){ g.innerHTML = '<p class="muted">No V3 components in this wallet on '+cur().name+' yet — buy or migrate some.</p>'; return; }
+  startLoop();
+  for(const {it,n} of owned){
+    const el = document.createElement("div"); el.className = "g-card";
+    const isImg = it.key && it.key.endsWith(".webp");
+    el.innerHTML = `<div class="g-frame">${isImg?`<img src="${assetUrl(it.key)}" alt="">`:'<div class="frame3d" style="width:100%;height:100%"><div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-size:11px">loading…</div></div>'}${it.gen===2?'<span class="g2">GEN 2</span>':''}</div>
+      <div class="g-body"><div class="gn">${it.name}</div><div class="gp">you own ×${n}</div>
+        <button data-id="${it.id}">Stake (off)</button></div>`;
+    el.querySelector("button").onclick = ()=> tx(c(cur().mg, ABI.mg, true).stake(it.id, 1, false), `Staked ${it.name} (off) — earning WATT`);
+    g.appendChild(el);
+    if(!isImg && (it.key||it.scene)){ try{ const obj = await getObject(it); makeViewer(el.querySelector(".frame3d"), obj, it.rot); }catch(e){} }
+  }
 }
 // scan the classic collection for everything the user owns, show name + amount + swap
 async function renderClassic(){
@@ -354,10 +374,8 @@ $("connect").onclick=connect;
 $("net").onchange=e=>switchNet(Number(e.target.value));
 $("refreshStake").onclick=refreshAll;
 
-// stake
+// stake — per-component Stake buttons are wired in renderOwned()
 $("approveItems").onclick=()=>tx(c(cur().items,ABI.erc1155,true).setApprovalForAll(cur().mg,true),"Items approved");
-$("stakeBtn").onclick=()=>{ const id=+$("stakeId").value, amt=+$("stakeAmt").value||1; if(!id) return toast("Enter a component id","err");
-  tx(c(cur().mg,ABI.mg,true).stake(id,amt,false),"Staked (off) — earning WATT"); };
 $("claim").onclick=()=>tx(c(cur().mg,ABI.mg,true).claimWatt(),"WATT claimed");
 // migrate
 $("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
