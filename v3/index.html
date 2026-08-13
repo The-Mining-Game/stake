@@ -376,13 +376,13 @@ function tickEarn(){
 }
 setInterval(tickEarn, 100);
 function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="toast "+(kind||""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 6000); }
-const c = (a,abi,rw) => new ethers.Contract(a, abi, rw?signer:provider);
-// Reliable read path: some injected wallets have flaky RPCs that make ethers throw
-// "could not coalesce error" on reads/gas-estimation. Route view calls through the
-// chain's public RPC instead of the wallet, and pass explicit gas limits on writes
-// so ethers never calls the wallet's (broken) eth_estimateGas.
+// Reliable read path: injected-wallet RPCs are often flaky/down (a dead RPC is exactly
+// what blanked the staking counter), and cause ethers "could not coalesce error" on
+// reads/gas-estimation. So ALL view calls go through the chain's own public RPC, and
+// writes carry explicit gas limits so ethers never calls the wallet's eth_estimateGas.
 let _rp={};
 const rc = (a,abi) => new ethers.Contract(a, abi, (_rp[chainId] ||= new ethers.JsonRpcProvider(cur().rpc)));
+const c = (a,abi,rw) => rw ? new ethers.Contract(a, abi, signer) : rc(a,abi);
 const GAS = { approve:90000n, approveAll:70000n, migrateWatt:220000n, stakeWatt:220000n, migrateNft:260000n };
 function cur(){ return CFG[chainId]; }
 
