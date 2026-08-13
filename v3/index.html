@@ -468,7 +468,7 @@ async function renderClassic(){
     const thumb = o ? `<img src="https://ordinals.gorillapool.io/content/${o}" alt="" style="width:40px;height:40px;border-radius:8px;object-fit:cover;background:#0c0a18" onerror="this.style.display='none'">` : "";
     el.innerHTML = `${thumb}<div><div class="n">${nm}</div><div class="s">id ${h.id} · you own <b>×${h.amount}</b></div></div><div class="grow"></div>`;
     const b = document.createElement("button"); b.textContent = "Swap ×"+h.amount; b.dataset.id = h.id; b.dataset.amt = h.amount;
-    b.onclick = ()=> tx(c(cur().migrator, ABI.migrator, true).migrate([h.id],[h.amount]), `Swapped ${h.amount}× ${nm} 1:1`);
+    b.onclick = ()=> migrateClassic([h.id],[h.amount], `Swapped ${h.amount}× ${nm} 1:1`);
     el.appendChild(b); box.appendChild(el);
   }
 }
@@ -577,12 +577,22 @@ $("wpUnstake").onclick=()=>{ if(!signer) return toast("Connect your wallet first
   tx(c(cur().wattPool,ABI.pool,true).unstake(amt),"WATT unstaked (principal returned) ✓"); };
 $("wpClaim").onclick=()=>{ if(!signer) return toast("Connect your wallet first","err");
   tx(c(cur().wattPool,ABI.pool,true).claim(),"Pool rewards claimed ✓"); };
-// migrate
+// migrate — one-click: auto-approve the classic collection to the migrator, then migrate.
+// (The migrator moves your classic NFTs, so it must be setApprovalForAll'd first; missing
+//  that approval is the usual reason a swap reverts — nothing to do with the multisig.)
+async function migrateClassic(ids, amts, label){
+  if(!signer) return toast("Connect your wallet first","err");
+  const cl=c(cur().classic,ABI.erc1155,true);
+  try{
+    const ok=await cl.isApprovedForAll(addr,cur().migrator);
+    if(!ok){ toast("Approve components…"); const at=await cl.setApprovalForAll(cur().migrator,true); await at.wait(); }
+    tx(c(cur().migrator,ABI.migrator,true).migrate(ids,amts), label);
+  }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); }
+}
 $("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
 $("refreshMig").onclick=refreshAll;
 $("migAll").onclick=()=>{ if(!classicHeld.length) return toast("No classic components to swap","err");
-  const ids=classicHeld.map(h=>h.id), amts=classicHeld.map(h=>h.amount);
-  tx(c(cur().migrator,ABI.migrator,true).migrate(ids,amts),`Swapped all ${ids.length} component type(s) 1:1`); };
+  migrateClassic(classicHeld.map(h=>h.id), classicHeld.map(h=>h.amount), `Swapped all ${classicHeld.length} component type(s) 1:1`); };
 // watt
 $("approveOldWatt").onclick=()=>tx(c(cur().oldWatt,ABI.erc20,true).approve(cur().wattSwap,ethers.MaxUint256),"Old WATT approved");
 $("swapWatt").onclick=async()=>{
