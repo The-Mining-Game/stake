@@ -377,6 +377,13 @@ function tickEarn(){
 setInterval(tickEarn, 100);
 function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="toast "+(kind||""); t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none", 6000); }
 const c = (a,abi,rw) => new ethers.Contract(a, abi, rw?signer:provider);
+// Reliable read path: some injected wallets have flaky RPCs that make ethers throw
+// "could not coalesce error" on reads/gas-estimation. Route view calls through the
+// chain's public RPC instead of the wallet, and pass explicit gas limits on writes
+// so ethers never calls the wallet's (broken) eth_estimateGas.
+let _rp={};
+const rc = (a,abi) => new ethers.Contract(a, abi, (_rp[chainId] ||= new ethers.JsonRpcProvider(cur().rpc)));
+const GAS = { approve:90000n, approveAll:70000n, migrateWatt:220000n, stakeWatt:220000n, migrateNft:260000n };
 function cur(){ return CFG[chainId]; }
 
 async function connect(){
@@ -564,11 +571,10 @@ $("wpStake").onclick=async()=>{
   if(!signer) return toast("Connect your wallet first","err");
   const amt=wpAmtWei(); if(amt===null) return toast("Enter a WATT amount","err");
   if(amt>_wp.bal) return toast("Amount exceeds your WATT balance","err");
-  const w=c(cur().watt,ABI.erc20,true);
   try{
-    const allow=await w.allowance(addr,cur().wattPool);
-    if(allow<amt){ toast("Approve WATT…"); const at=await w.approve(cur().wattPool,amt); await at.wait(); }
-    tx(c(cur().wattPool,ABI.pool,true).stake(amt),"WATT staked — now earning purchase fees ✓");
+    const allow=await rc(cur().watt,ABI.erc20).allowance(addr,cur().wattPool);
+    if(allow<amt){ toast("Approve WATT…"); const at=await c(cur().watt,ABI.erc20,true).approve(cur().wattPool,ethers.MaxUint256,{gasLimit:GAS.approve}); await at.wait(); }
+    tx(c(cur().wattPool,ABI.pool,true).stake(amt,{gasLimit:GAS.stakeWatt}),"WATT staked — now earning purchase fees ✓");
   }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); }
 };
 $("wpUnstake").onclick=()=>{ if(!signer) return toast("Connect your wallet first","err");
@@ -582,11 +588,10 @@ $("wpClaim").onclick=()=>{ if(!signer) return toast("Connect your wallet first",
 //  that approval is the usual reason a swap reverts — nothing to do with the multisig.)
 async function migrateClassic(ids, amts, label){
   if(!signer) return toast("Connect your wallet first","err");
-  const cl=c(cur().classic,ABI.erc1155,true);
   try{
-    const ok=await cl.isApprovedForAll(addr,cur().migrator);
-    if(!ok){ toast("Approve components…"); const at=await cl.setApprovalForAll(cur().migrator,true); await at.wait(); }
-    tx(c(cur().migrator,ABI.migrator,true).migrate(ids,amts), label);
+    const ok=await rc(cur().classic,ABI.erc1155).isApprovedForAll(addr,cur().migrator);
+    if(!ok){ toast("Approve components…"); const at=await c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true,{gasLimit:GAS.approveAll}); await at.wait(); }
+    tx(c(cur().migrator,ABI.migrator,true).migrate(ids,amts,{gasLimit:GAS.migrateNft}), label);
   }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); }
 }
 $("approveClassic").onclick=()=>tx(c(cur().classic,ABI.erc1155,true).setApprovalForAll(cur().migrator,true),"Classic approved");
@@ -599,14 +604,13 @@ $("swapWatt").onclick=async()=>{
   if(!signer) return toast("Connect your wallet first","err");
   const a=$("swAmt").value; if(!a||Number(a)<=0) return toast("Enter an amount","err");
   let amt; try{ amt=ethers.parseEther(a); }catch{ return toast("Invalid amount","err"); }
-  const old=c(cur().oldWatt,ABI.erc20,true);
   try{
-    const bal=await old.balanceOf(addr);
+    const bal=await rc(cur().oldWatt,ABI.erc20).balanceOf(addr);
     if(amt>bal) return toast("Amount exceeds your old WATT balance","err");
     // auto-approve if the swap can't yet pull your old WATT (the usual reason swaps revert)
-    const allow=await old.allowance(addr,cur().wattSwap);
-    if(allow<amt){ toast("Approve old WATT…"); const at=await old.approve(cur().wattSwap,ethers.MaxUint256); await at.wait(); }
-    tx(c(cur().wattSwap,ABI.wattSwap,true).migrate(amt),"Swapped to new WATT ✓");
+    const allow=await rc(cur().oldWatt,ABI.erc20).allowance(addr,cur().wattSwap);
+    if(allow<amt){ toast("Approve old WATT…"); const at=await c(cur().oldWatt,ABI.erc20,true).approve(cur().wattSwap,ethers.MaxUint256,{gasLimit:GAS.approve}); await at.wait(); }
+    tx(c(cur().wattSwap,ABI.wattSwap,true).migrate(amt,{gasLimit:GAS.migrateWatt}),"Swapped to new WATT ✓");
   }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); }
 };
 $("approveVault").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().vault,ethers.MaxUint256),"Vault approved");
