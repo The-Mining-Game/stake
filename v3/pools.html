@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Mining Game — Pools</title>
+<style>
+  :root{--bg:#0c0a18;--panel:#151027;--panel2:#1c1636;--ink:#ece9fb;--dim:#a49dc4;--line:#2a2246;--gold:#ffd23f;--cyan:#2ee6d6;--violet:#b892ff;--grn:#4fdd8a;--ok:#4fdd8a;--red:#ff6b5e;--mono:ui-monospace,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  *{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;position:sticky;top:0;background:var(--bg);z-index:10}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}.logo img{height:28px}.logo .sub{color:var(--dim);font-weight:600;font-size:14px}
+  .grow{flex:1}
+  select,button,input{font-family:inherit;font-size:14px}
+  select,input{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  button{background:var(--violet);color:#12091f;border:0;border-radius:9px;padding:10px 14px;font-weight:700;cursor:pointer}
+  button.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.45;cursor:default}
+  .wrap{max-width:960px;margin:0 auto;padding:22px 18px 90px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 18px}
+  .tab{padding:8px 14px;border-radius:20px;background:var(--panel);border:1px solid var(--line);color:var(--dim);cursor:pointer;font-size:13.5px}
+  .tab.on{background:var(--gold);color:#241a00;border-color:var(--gold);font-weight:700}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin-bottom:16px}
+  h2{font-size:16px;margin:0 0 4px}.d{color:var(--dim);font-size:13.5px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+  label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+  .field{flex:1 1 200px;min-width:0}input{width:100%}
+  code{font-family:var(--mono);font-size:12px;color:var(--dim);word-break:break-all}
+  .pool{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:13px 14px;margin:8px 0}
+  .pool .n{font-weight:700}.pool .m{font-family:var(--mono);font-size:11.5px;color:var(--dim);margin-top:4px}
+  .chip{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:12px;background:var(--panel);color:var(--gold);margin-left:6px}
+  .stat{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--cyan);margin-right:14px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 18px;z-index:50;display:none;font-size:13.5px;max-width:92vw}
+  .toast.err{border-color:var(--red);color:var(--red)}.toast.ok{border-color:var(--ok);color:var(--ok)}
+  @media(max-width:640px){.wrap{padding:16px 14px 72px}header{padding:10px 14px}.tabs{flex-wrap:nowrap;overflow-x:auto}.tab{white-space:nowrap}button{min-height:44px}}
+</style></head><body>
+<header>
+  <div class="logo"><img src="mg-logo.png" alt="The Mining Game"><span class="sub">· Pools</span></div>
+  <div class="grow"></div>
+  <select id="net"><option value="137">🟣 Polygon</option><option value="2330">🟠 Altcoinchain</option><option value="22356">⚡ WATTxchain</option></select>
+  <span id="wattbal" class="d"></span>
+  <button id="connect">Connect Wallet</button>
+</header>
+<div class="wrap">
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-t="browse">Browse pools</div>
+    <div class="tab" data-t="create">Create a pool</div>
+    <div class="tab" data-t="mine">Point a rig</div>
+    <div class="tab" data-t="earn">Earnings</div>
+    <div class="tab" data-t="drip">ALT drip</div>
+  </div>
+
+  <section id="pane-browse">
+    <div class="card"><h2>Mining pools on <span id="bnet">Polygon</span></h2>
+      <p class="d">Each pool has a validator; every block its earnings are split among the pool's miners by their rigs' hashrate. Point a rig at a pool to start earning.</p>
+      <div class="row"><button class="ghost" id="refreshPools">Refresh</button></div>
+      <div id="poolList"><p class="d">Connect your wallet (or just browse) to load pools…</p></div>
+    </div>
+  </section>
+
+  <section id="pane-create" style="display:none">
+    <div class="card"><h2>1 · Become a host</h2>
+      <p class="d">Register as a pool host and lock <b id="reqStake">100,000</b> WATT. This one-time stake lets you open mining pools. Status: <b id="hostStatus" style="color:var(--gold)">—</b></p>
+      <div class="row"><div class="field"><label>Pool name</label><input id="hName" placeholder="e.g. Nucash ALT Pool"></div>
+        <div class="field"><label>Stratum endpoint</label><input id="hStratum" placeholder="stratum+tcp://…:3333"></div></div>
+      <div class="row"><div class="field"><label>Node RPC endpoint</label><input id="hRpc" placeholder="https://your-node:port"></div>
+        <div class="field"><label>Node P2P endpoint</label><input id="hP2p" placeholder="host:port"></div></div>
+      <div class="row"><div class="field"><label>Fee %</label><input id="hFee" type="number" value="2" min="0" max="20"></div>
+        <button id="btnRegister">Register + lock WATT</button></div>
+    </div>
+    <div class="card"><h2>2 · Open a mining pool</h2>
+      <p class="d">Create a pool that pays out on a target chain. (Requires an active host stake above.)</p>
+      <div class="row"><div class="field"><label>Pool name</label><input id="pName" placeholder="ALT PoS Pool"></div>
+        <div class="field"><label>Payout chain</label><select id="pTarget"></select></div></div>
+      <div class="row"><div class="field"><label>Node endpoint (RPC/validator)</label><input id="pEndpoint" placeholder="https://rpc.wattxchange.app"></div></div>
+      <div class="row"><div class="field"><label>Reward fee (bps, 200=2%)</label><input id="pRewardFee" type="number" value="200"></div>
+        <div class="field"><label>WATT cut (bps)</label><input id="pWattCut" type="number" value="0"></div>
+        <button id="btnCreate">Create pool</button></div>
+    </div>
+  </section>
+
+  <section id="pane-mine" style="display:none">
+    <div class="card"><h2>Point a rig at a pool</h2>
+      <p class="d">Stake your Mining Rig NFT into a pool with some WATT as fuel. Its hashrate joins the pool and earns you a share of the validator's block rewards.</p>
+      <div class="row"><div class="field"><label>Rig NFT id</label><input id="mRig" type="number" placeholder="your rig token id"></div>
+        <div class="field"><label>Pool id</label><input id="mPool" type="number" placeholder="pool #"></div>
+        <div class="field"><label>WATT to fuel</label><input id="mWatt" type="number" placeholder="amount"></div></div>
+      <div class="row"><button id="btnStart">Point rig → start mining</button><span class="d" id="mRigInfo"></span></div>
+    </div>
+  </section>
+
+  <section id="pane-earn" style="display:none">
+    <div class="card"><h2>Your rig earnings</h2>
+      <div class="row"><div class="field"><label>Rig NFT id</label><input id="eRig" type="number" placeholder="rig token id"></div>
+        <button class="ghost" id="btnPending">Check pending</button><span class="stat" id="ePending"></span></div>
+      <div class="row"><button id="btnClaim">Claim rewards</button><button class="ghost" id="btnStop">Stop mining</button></div>
+    </div>
+    <div class="card"><h2>Payout addresses (per chain)</h2>
+      <p class="d">Where you receive payouts on each target chain. Set one per chain you mine to.</p>
+      <div id="targets"></div>
+    </div>
+  </section>
+
+  <section id="pane-drip" style="display:none">
+    <div class="card"><h2>Interim ALT payout — 1 ALT / block</h2>
+      <p class="d">Altcoinchain hybrid PoW/PoS activates at block <b>7,200,000</b>. Until then, an ALT pool can pay <b>1 ALT per block (~12s)</b>, split across the pool's miners by hashrate. Current ALT height: <b id="altHeight" style="color:var(--cyan)">—</b> · blocks to PoS: <b id="altToPos">—</b>.</p>
+      <div class="row"><div class="field"><label>Pool id (ALT)</label><input id="dPool" type="number" placeholder="pool #"></div>
+        <div class="field"><label>ALT to fund the drip</label><input id="dAmt" type="number" placeholder="e.g. 100000"></div>
+        <button id="btnFund">Fund ALT drip</button></div>
+      <p class="d">The <code>mg-pool-operator</code> distributes 1 ALT/block from the funded balance to miners by hashrate. (Operator wiring is set server-side; funding tops up the payout reserve.)</p>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+<script type="module">
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
+const CFG = {
+  137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com", watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f",
+    registry:"0xCe347180C3A45151C10366Da43fD822289ebB075", hub:"0x6f8330bB06D93A8932618EC1Fbb2818323EC3bf5", engine:"0x782585f15E75b76C4bE33Ae31c47Bc437C9Bbfe0", rigNft:"0xf9F94e9fa744DE1209EF28321604a0Aa3B21a884" },
+  2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://rpc.wattxchange.app", watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D",
+    registry:"0x0f1e3C2336fBf35148FdbA21F81fA3B57a1DF254", hub:"0xfbc6168D4c4f112275713B976612891E432e265e", engine:"0xB0A142d97225AD61682d77A30a2eC7144826F487", rigNft:"0x131A875e1bfEB2B3735E5d9Ad5e8871fF6CE9381" },
+  22356:{ name:"WATTxchain", hex:"0x5754", rpc:"https://rpc-wtx.wattxchange.app", watt:"0xc4603E2582aE320857379819123dFbFd3093dcfa",
+    registry:"0x3a02971ceAF9B817e770c36e393A95542bC65Df2", hub:"0x9fAb0fBa9b458A7A0c9D60a26BC33f6E2695F179", engine:"0xE2D4eC76dFFAC5215a03332B4A01ce0AFF9A91c1", rigNft:"0x5f9be9282E29fCE419cE2e424ED3fd0be842C7e7" },
+};
+const TARGETS = [{id:0,sym:'ALT'},{id:1,sym:'WTX'},{id:2,sym:'POL'},{id:3,sym:'BSV'},{id:4,sym:'HTH'}];
+const ABI = {
+  erc20:["function balanceOf(address) view returns (uint256)","function approve(address,uint256) returns (bool)","function allowance(address,address) view returns (uint256)"],
+  registry:["function registerPoolWithNode(string,string,string,string,string,uint256,uint256,uint8[])","function isRegistered(address) view returns (bool)","function requiredStake() view returns (uint256)","function getPool(address) view returns (tuple(address operator,string name,string description,string endpoint,uint256 feePercent,uint256 minPayout,uint256 stakedAmount,uint256 registeredAt,uint256 unstakeRequestedAt,uint8 status,uint8[] supportedAlgorithms))"],
+  engine:["function createPool(uint256,uint8,uint16,uint16,string,string) returns (uint256)","function startMining(address,uint256,uint256,uint256)","function claim(address,uint256)","function stopMining(address,uint256)","function pendingRewards(address,uint256) view returns (uint256)","function poolCount() view returns (uint256)","function pools(uint256) view returns (address owner,uint256 targetId,uint8 requiredAlgo,uint16 rewardFeeBps,uint16 wattCutBps,string name,string nodeEndpoint,bool active,uint256 hashRate,uint256 minersActive,uint256 feesEarned,uint256 wattEarned)"],
+  hub:["function setPayoutAddress(uint256,string)","function payoutAddressFor(uint256,address) view returns (string)","function balanceOfTarget(uint256) view returns (uint256)","function targetCount() view returns (uint256)"],
+  rig:["function isApprovedForAll(address,address) view returns (bool)","function setApprovalForAll(address,bool)","function ownerOf(uint256) view returns (address)","function isStaked(uint256) view returns (bool)","function rigTraits(uint256) view returns (tuple(uint16 hashRate,uint16 efficiency,uint16 wattConsumption,uint8 tier,uint8 algorithm))"],
+};
+const ANY_ALGO=255, POS_ACTIVATE=7200000n;
+let provider, signer, addr, chainId=137;
+const $=id=>document.getElementById(id), cur=()=>CFG[chainId];
+let _rp={}; const rc=(a,abi)=>new ethers.Contract(a,abi,(_rp[chainId]||=new ethers.JsonRpcProvider(cur().rpc)));
+const c=(a,abi,rw)=>rw?new ethers.Contract(a,abi,signer):rc(a,abi);
+const fmt=(w,dp=2)=>{try{const n=Number(ethers.formatEther(w));return n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString(undefined,{maximumFractionDigits:dp});}catch{return "0";}};
+function toast(m,k){const t=$("toast");t.textContent=m;t.className="toast "+(k||"");t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",9000);}
+async function tx(label,p,ok){try{toast("Confirm in your wallet…");const t=await p;toast("Pending "+(t.hash||"").slice(0,12));await t.wait();toast(ok||"Done ✓","ok");refreshAll();return true;}catch(e){toast(label+" failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,110),"err");return false;}}
+async function ensureAllowance(token,spender,amt){const t=c(token,ABI.erc20,true);const al=await rc(token,ABI.erc20).allowance(addr,spender);if(al<amt){toast("Approve WATT…");const a=await t.approve(spender,ethers.MaxUint256,{gasLimit:90000n});await a.wait();}}
+function fillTargets(){ const s=$("pTarget"); s.innerHTML=TARGETS.map(t=>`<option value="${t.id}">${t.id} · ${t.sym}</option>`).join(''); }
+async function connect(){ if(!window.ethereum) return toast("Install MetaMask/Rabby","err");
+  provider=new ethers.BrowserProvider(window.ethereum); await provider.send("eth_requestAccounts",[]);
+  signer=await provider.getSigner(); addr=await signer.getAddress(); chainId=Number((await provider.getNetwork()).chainId);
+  if(!CFG[chainId]) await switchNet(137); $("net").value=String(chainId);
+  $("connect").textContent=addr.slice(0,6)+"…"+addr.slice(-4);
+  window.ethereum.on?.("chainChanged",()=>location.reload()); refreshAll(); }
+async function switchNet(id){ try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CFG[id].hex}]});}catch(e){toast("Switch network in wallet","err");}
+  chainId=id; if(window.ethereum){provider=new ethers.BrowserProvider(window.ethereum);signer=await provider.getSigner();} refreshAll(); }
+async function renderPools(){
+  const box=$("poolList"); $("bnet").textContent=cur().name;
+  try{ const eng=rc(cur().engine,ABI.engine); const n=Number(await eng.poolCount());
+    if(!n){ box.innerHTML='<p class="d">No pools yet on '+cur().name+'. Be the first — open one in “Create a pool”.</p>'; return; }
+    let html=''; for(let i=0;i<n;i++){ const p=await eng.pools(i); const tgt=TARGETS.find(t=>t.id===Number(p.targetId));
+      html+=`<div class="pool"><div class="n">#${i} ${p.name||'(unnamed)'} <span class="chip">${tgt?tgt.sym:'target '+p.targetId}</span>${p.active?'':'<span class="chip" style="color:var(--red)">paused</span>'}</div>
+        <div class="m">host ${p.owner.slice(0,8)}…${p.owner.slice(-6)} · fee ${Number(p.rewardFeeBps)/100}%</div>
+        <div style="margin-top:6px"><span class="stat">⛏ ${p.hashRate} hash</span><span class="stat">👤 ${p.minersActive} miners</span><span class="stat">⚡ ${fmt(p.wattEarned)} WATT earned</span></div></div>`; }
+    box.innerHTML=html;
+  }catch(e){ box.innerHTML='<p class="d">Could not load pools: '+((e.shortMessage||e.message)+'').slice(0,80)+'</p>'; }
+}
+async function renderHost(){
+  if(!addr) return; try{ $("reqStake").textContent=fmt(await rc(cur().registry,ABI.registry).requiredStake());
+    const reg=await rc(cur().registry,ABI.registry).isRegistered(addr);
+    let st="not registered"; if(reg){ const gp=await rc(cur().registry,ABI.registry).getPool(addr); st=["INACTIVE","ACTIVE","PAUSED","UNSTAKING","CLOSED"][Number(gp.status)]||"?"; }
+    $("hostStatus").textContent=st; $("btnCreate").disabled=!(reg); }catch(e){}
+}
+function renderTargets(){ const box=$("targets"); box.innerHTML=TARGETS.map(t=>`<div class="row"><div class="field"><label>${t.sym} payout address</label><input id="pa${t.id}" placeholder="${t.sym} address"></div><button class="ghost" data-pa="${t.id}">Set</button></div>`).join('');
+  box.querySelectorAll('[data-pa]').forEach(b=>b.onclick=()=>{ if(!signer) return toast("Connect first","err"); const v=$("pa"+b.dataset.pa).value.trim(); if(!v) return toast("Enter an address","err");
+    tx("Set payout",c(cur().hub,ABI.hub,true).setPayoutAddress(Number(b.dataset.pa),v,{gasLimit:120000n}),"Payout address set ✓"); }); }
+async function renderDrip(){ try{ const h=await (_rp[chainId]||=new ethers.JsonRpcProvider(cur().rpc)).getBlockNumber();
+  if(chainId===2330){ $("altHeight").textContent=h.toLocaleString(); const left=Number(POS_ACTIVATE)-h; $("altToPos").textContent=left>0?left.toLocaleString():"PoS ACTIVE"; }
+  else { $("altHeight").textContent="(switch to Altcoinchain)"; $("altToPos").textContent="—"; } }catch(e){} }
+async function refreshAll(){ renderPools(); if(addr){ try{ $("wattbal").textContent="WATT "+fmt(await rc(cur().watt,ABI.erc20).balanceOf(addr)); }catch{} renderHost(); } renderDrip(); }
+// actions
+$("btnRegister").onclick=async()=>{ if(!signer) return toast("Connect first","err");
+  const name=$("hName").value.trim(), strat=$("hStratum").value.trim()||"stratum+tcp://pool:3333", rpc=$("hRpc").value.trim()||cur().rpc, p2p=$("hP2p").value.trim()||"node:30303", fee=Math.round((+$("hFee").value||2));
+  if(!name) return toast("Enter a pool name","err");
+  try{ const req=await rc(cur().registry,ABI.registry).requiredStake(); await ensureAllowance(cur().watt,cur().registry,req);
+    tx("Register",c(cur().registry,ABI.registry,true).registerPoolWithNode(name,name,strat,rpc,p2p,fee,0,[0],{gasLimit:600000n}),"Registered as host ✓ (100k WATT locked)"); }catch(e){ toast("Register: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
+$("btnCreate").onclick=()=>{ if(!signer) return toast("Connect first","err");
+  const name=$("pName").value.trim()||"My Pool", tgt=Number($("pTarget").value), ep=$("pEndpoint").value.trim()||cur().rpc, rf=Math.round(+$("pRewardFee").value||200), wc=Math.round(+$("pWattCut").value||0);
+  tx("Create pool",c(cur().engine,ABI.engine,true).createPool(tgt,ANY_ALGO,rf,wc,name,ep,{gasLimit:500000n}),"Pool created ✓ — see Browse"); };
+$("btnStart").onclick=async()=>{ if(!signer) return toast("Connect first","err");
+  const rig=$("mRig").value, pool=$("mPool").value, w=$("mWatt").value; if(rig===""||pool===""||!w) return toast("Fill rig id, pool id, WATT","err");
+  const amt=ethers.parseEther(w);
+  try{ const ok=await rc(cur().rigNft,ABI.rig).isApprovedForAll(addr,cur().engine); if(!ok){ toast("Approve rigs…"); const a=await c(cur().rigNft,ABI.rig,true).setApprovalForAll(cur().engine,true,{gasLimit:80000n}); await a.wait(); }
+    await ensureAllowance(cur().watt,cur().engine,amt);
+    tx("Start mining",c(cur().engine,ABI.engine,true).startMining(cur().rigNft,BigInt(rig),amt,BigInt(pool),{gasLimit:400000n}),"Rig pointed at pool ✓"); }catch(e){ toast("Start: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
+$("btnPending").onclick=async()=>{ const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
+  try{ const p=await rc(cur().engine,ABI.engine).pendingRewards(cur().rigNft,BigInt(rig)); $("ePending").textContent=fmt(p,4)+" pending"; }catch(e){ toast("No data for that rig","err"); } };
+$("btnClaim").onclick=()=>{ if(!signer) return toast("Connect first","err"); const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
+  tx("Claim",c(cur().engine,ABI.engine,true).claim(cur().rigNft,BigInt(rig),{gasLimit:300000n}),"Claimed ✓"); };
+$("btnStop").onclick=()=>{ if(!signer) return toast("Connect first","err"); const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
+  tx("Stop",c(cur().engine,ABI.engine,true).stopMining(cur().rigNft,BigInt(rig),{gasLimit:300000n}),"Stopped mining ✓"); };
+$("btnFund").onclick=async()=>{ if(!signer) return toast("Connect first","err"); if(chainId!==2330) return toast("Switch to Altcoinchain to fund the ALT drip","err");
+  const amt=$("dAmt").value; if(!amt) return toast("Enter ALT amount","err");
+  // Fund the hub's payout reserve for ALT (targetId 0) by sending native ALT to the hub.
+  tx("Fund",signer.sendTransaction({to:cur().hub,value:ethers.parseEther(amt),gasLimit:60000n}),"ALT drip funded ✓ — operator distributes 1 ALT/block"); };
+// tabs + init
+$("tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return; document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
+  ["browse","create","mine","earn","drip"].forEach(p=>$("pane-"+p).style.display=p===t.dataset.t?"block":"none"); });
+$("connect").onclick=connect; $("net").onchange=e=>switchNet(Number(e.target.value)); $("refreshPools").onclick=renderPools;
+fillTargets(); renderTargets(); refreshAll();
+</script></body></html>
