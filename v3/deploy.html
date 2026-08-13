@@ -3,23 +3,25 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mining Game v2 Deployer</title>
 <style>
-  :root{--bg:#0c0a18;--panel:#151027;--panel2:#1c1636;--ink:#ece9fb;--dim:#a49dc4;--line:#2a2246;--gold:#ffd23f;--cyan:#2ee6d6;--violet:#b892ff;--ok:#4fdd8a;--red:#ff6b5e;--mono:ui-monospace,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  :root{--bg:#0c0a18;--panel:#151027;--panel2:#1c1636;--ink:#ece9fb;--dim:#a49dc4;--line:#2a2246;--gold:#ffd23f;--cyan:#2ee6d6;--violet:#b892ff;--grn:#4fdd8a;--ok:#4fdd8a;--red:#ff6b5e;--mono:ui-monospace,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   *{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
   .wrap{max-width:760px;margin:0 auto;padding:26px 18px 90px}
   h1{font-size:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}h1 img{height:26px}h1 .sub{color:var(--dim);font-weight:600;font-size:14px}
-  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
   select,button,input{font-family:inherit;font-size:14px}
   select,input{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
   button{background:var(--violet);color:#12091f;border:0;border-radius:9px;padding:10px 15px;font-weight:700;cursor:pointer}
   button.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  button.sm{padding:8px 11px;font-size:13px}
   button:disabled{opacity:.45;cursor:default}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;margin:14px 0}
   code{font-family:var(--mono);font-size:12px;color:var(--dim);word-break:break-all}
   .muted{color:var(--dim);font-size:13px}.d{color:var(--dim);font-size:13.5px}
-  .step{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+  .step{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
   .step:first-child{border-top:0}.step .n{width:26px;height:26px;flex:0 0 auto;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:13px}
   .step.done .n{background:#12301f;color:var(--ok);border-color:#2c6}.step .b{flex:1;min-width:0}
   .addr{font-family:var(--mono);font-size:12px;color:var(--cyan);word-break:break-all}
+  .paste{margin-top:6px}.paste input{flex:1;min-width:0;font-family:var(--mono);font-size:12px}
   .kv{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 18px;z-index:50;display:none;font-size:13.5px;max-width:92vw}
   .toast.err{border-color:var(--red);color:var(--red)}.toast.ok{border-color:var(--ok);color:var(--ok)}
@@ -27,24 +29,27 @@
 </style></head><body>
 <div class="wrap">
   <h1><img src="mg-logo.png" alt="The Mining Game"><span class="sub">· v2 Deployer</span></h1>
-  <p class="d">Deploy the decaying <b>WATT staking pool</b> + a new <b>ItemShop</b> (WATT&nbsp;→&nbsp;pool, other crypto&nbsp;→&nbsp;vault) straight from your wallet. Every step is a wallet signature — <b>no private key ever leaves your device</b>. Run it once per chain.</p>
+  <p class="d">Deploy the decaying <b>WATT staking pool</b> + a new <b>ItemShop</b> (WATT&nbsp;→&nbsp;pool, other crypto&nbsp;→&nbsp;vault) from your wallet. Every step is a signature — <b>no private key leaves your device</b>. Run once per chain. Each step also has a <b>paste-address box</b> so you can always continue if your wallet hiccups.</p>
   <div class="row">
     <select id="net"><option value="137">🟣 Polygon</option><option value="2330">🟠 Altcoinchain</option></select>
     <button id="connect">Connect Rabby</button><span id="who" class="muted"></span>
+    <button class="ghost sm" id="reset" title="Clear saved progress for this chain">reset chain</button>
   </div>
   <div class="card">
     <h2 style="margin:0 0 8px;font-size:15px">What gets deployed on <span id="netname">Polygon</span></h2>
     <div class="kv" id="cfg"></div>
   </div>
-  <div class="card" id="steps">
+  <div class="card">
     <div class="step" id="s1"><div class="n">1</div><div class="b">
       <div><b>Deploy WattStakingPoolV2</b> <span class="pill">3-month decay</span></div>
-      <div class="d">The staking pool: funded WATT pays out per block on an exponential-decay curve; 24h claim cooldown + restake; no minting.</div>
-      <div class="row"><button id="b1">Deploy pool</button><span class="addr" id="a1"></span></div></div></div>
+      <div class="d">Funded WATT pays out per block on an exponential-decay curve; 24h claim cooldown + restake; no minting.</div>
+      <div class="row"><button id="b1">Deploy pool</button><span class="addr" id="a1"></span></div>
+      <div class="row paste"><input id="p1" placeholder="…or paste an already-deployed pool address"><button class="ghost sm" id="m1">Use</button></div></div></div>
     <div class="step" id="s2"><div class="n">2</div><div class="b">
       <div><b>Deploy ItemShop (v2)</b></div>
-      <div class="d">Sells NFTs. WATT payments route into the pool above; any other currency goes to the vault. Reuses your existing NFT collection.</div>
-      <div class="row"><button id="b2" disabled>Deploy shop</button><span class="addr" id="a2"></span></div></div></div>
+      <div class="d">WATT payments route into the pool; other currency goes to the vault. Reuses your existing NFT collection.</div>
+      <div class="row"><button id="b2" disabled>Deploy shop</button><span class="addr" id="a2"></span></div>
+      <div class="row paste"><input id="p2" placeholder="…or paste an already-deployed shop address"><button class="ghost sm" id="m2">Use</button></div></div></div>
     <div class="step" id="s3"><div class="n">3</div><div class="b">
       <div><b>Copy item prices</b></div>
       <div class="d">Reads the current shop's WATT prices and sets them on the new shop.</div>
@@ -53,11 +58,7 @@
   <div class="card" id="done" style="display:none;border-color:#2c6">
     <h2 style="margin:0 0 6px;font-size:15px;color:var(--ok)">✓ Deployed on <span id="donenet"></span></h2>
     <div class="kv" id="doneaddrs"></div>
-    <p class="d" style="margin-top:10px"><b>Two things left:</b></p>
-    <ol class="d">
-      <li>On the <b>deployer admin page</b>, run a multisig <code>setMinter(newShop, true)</code> so the new shop can mint NFTs.</li>
-      <li>Tell Claude the new addresses (they're saved below) and the stake-site + game will be pointed at them.</li>
-    </ol>
+    <p class="d" style="margin-top:10px"><b>Two things left:</b> (1) multisig <code>setMinter(newShop, true)</code> on the admin page; (2) send Claude the two addresses to point the apps at them.</p>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -77,11 +78,14 @@ const IDS = [1,2,3,4,5,8,9,10,11,12,13,14,17,18,19,23];
 let provider, signer, addr, chainId=137;
 const $=id=>document.getElementById(id);
 const cur=()=>CFG[chainId];
-function toast(m,k){const t=$("toast");t.textContent=m;t.className="toast "+(k||"");t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",8000);}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rp=()=>new ethers.JsonRpcProvider(cur().rpc);
+function toast(m,k){const t=$("toast");t.textContent=m;t.className="toast "+(k||"");t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",11000);}
 const KEY=()=>"mgv2deploy:"+chainId;
 function load(){ try{return JSON.parse(localStorage.getItem(KEY())||"{}")}catch{return{}} }
 function save(o){ localStorage.setItem(KEY(), JSON.stringify(o)); }
-function short(a){ return a? a.slice(0,8)+"…"+a.slice(-6):""; }
+const short=a=>a?a.slice(0,8)+"…"+a.slice(-6):"";
+async function confirmCode(a){ const p=rp(); for(let i=0;i<40;i++){ try{ if((await p.getCode(a))!=="0x") return true; }catch{} await sleep(3000);} return false; }
 function renderCfg(){
   const c=cur(); $("netname").textContent=c.name;
   $("cfg").innerHTML=`wattV2 <code>${c.wattV2}</code><br>reuse NFT collection <code>${c.items}</code><br>reuse oracle <code>${c.oracle}</code><br>proceeds → vault <code>${VAULT}</code><br>copy prices from shop <code>${c.oldShop}</code>`;
@@ -89,9 +93,11 @@ function renderCfg(){
 }
 function renderState(){
   const st=load();
-  const set=(id,btn,a,txt)=>{ $(a).textContent=st[txt]?("→ "+st[txt]):""; $("s"+id).classList.toggle("done",!!st[txt]); };
-  set(1,"b1","a1","pool"); set(2,"b2","a2","shop"); set(3,"b3","a3","priced");
-  $("b2").disabled=!(signer&&st.pool); $("b3").disabled=!(signer&&st.shop); $("b1").disabled=!signer;
+  $("a1").textContent=st.pool?("→ "+st.pool):""; $("s1").classList.toggle("done",!!st.pool);
+  $("a2").textContent=st.shop?("→ "+st.shop):""; $("s2").classList.toggle("done",!!st.shop);
+  $("a3").textContent=st.priced?("→ "+st.priced):""; $("s3").classList.toggle("done",!!st.priced);
+  $("b1").disabled=!signer; $("b2").disabled=!(signer&&st.pool); $("b3").disabled=!(signer&&st.shop);
+  $("m1").disabled=!signer; $("m2").disabled=!signer;
   if(st.pool&&st.shop){ $("done").style.display="block"; $("donenet").textContent=cur().name;
     $("doneaddrs").innerHTML=`WattStakingPoolV2 <code>${st.pool}</code><br>ItemShop v2 <code>${st.shop}</code>`; }
   else $("done").style.display="none";
@@ -101,34 +107,43 @@ async function connect(){ if(!window.ethereum) return toast("No wallet — insta
   signer=await provider.getSigner(); addr=await signer.getAddress(); chainId=Number((await provider.getNetwork()).chainId);
   if(!CFG[chainId]){ await switchNet(137); } $("net").value=String(chainId);
   $("connect").textContent=short(addr); $("who").innerHTML=`deployer · <b style="color:var(--grn)">${cur().name}</b>`;
-  window.ethereum.on?.("chainChanged",()=>location.reload());
+  if(!connect._w){ connect._w=1; window.ethereum.on?.("chainChanged",()=>location.reload()); window.ethereum.on?.("accountsChanged",()=>location.reload()); }
   renderCfg();
 }
 async function switchNet(id){ try{ await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CFG[id].hex}]});}catch(e){toast("Switch network in your wallet","err");}
   chainId=id; provider=new ethers.BrowserProvider(window.ethereum); signer=await provider.getSigner(); addr=await signer.getAddress(); renderCfg(); }
-async function tx(label, p, ok){ try{ toast("Confirm in your wallet…"); const r=await p; toast("Pending "+(r.hash||r.deploymentTransaction?.().hash||"").slice(0,12)); return r; }
-  catch(e){ toast(label+" failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,110),"err"); throw e; } }
 $("connect").onclick=connect;
 $("net").onchange=e=>switchNet(Number(e.target.value));
-// Step 1 — deploy pool (0 => 3-month decay default)
+$("reset").onclick=()=>{ if(confirm("Clear saved deploy progress for "+cur().name+"? (does not touch anything on-chain)")){ localStorage.removeItem(KEY()); renderState(); toast("Cleared "+cur().name); } };
+// deploy helper: sends via wallet, saves the computed address IMMEDIATELY, then confirms via public RPC
+async function deploy(kind, art, args, gas){
+  const f=new ethers.ContractFactory(art.abi, art.bytecode, signer);
+  toast("Confirm the "+kind+" deploy in your wallet…");
+  const k=await f.deploy(...args, {gasLimit:gas});
+  const a=k.target || await k.getAddress();
+  const st=load(); st[kind]=a; save(st); renderState();     // <-- saved before we wait; steps unlock now
+  toast(kind+" tx sent — confirming on-chain…");
+  if(await confirmCode(a)) toast(kind+" deployed ✓  "+short(a),"ok");
+  else toast(kind+" sent; couldn't confirm code yet — verify "+short(a)+" on the explorer","err");
+  return a;
+}
 $("b1").onclick=async()=>{ if(!signer) return toast("Connect first","err");
-  try{ const f=new ethers.ContractFactory(ARTS.pool.abi, ARTS.pool.bytecode, signer);
-    const k=await tx("Deploy pool", f.deploy(cur().wattV2, 0, {gasLimit:2600000n}));
-    await k.waitForDeployment(); const a=await k.getAddress();
-    const st=load(); st.pool=a; save(st); renderState(); toast("Pool deployed ✓","ok"); }catch(e){} };
-// Step 2 — deploy shop (items, wattV2, pool, oracle, VAULT)
-$("b2").onclick=async()=>{ const st=load(); if(!signer||!st.pool) return;
-  try{ const f=new ethers.ContractFactory(ARTS.shop.abi, ARTS.shop.bytecode, signer);
-    const k=await tx("Deploy shop", f.deploy(cur().items, cur().wattV2, st.pool, cur().oracle, VAULT, {gasLimit:2400000n}));
-    await k.waitForDeployment(); const a=await k.getAddress();
-    st.shop=a; save(st); renderState(); toast("Shop deployed ✓","ok"); }catch(e){} };
-// Step 3 — copy prices from old shop
-$("b3").onclick=async()=>{ const st=load(); if(!signer||!st.shop) return;
-  try{ const rp=new ethers.JsonRpcProvider(cur().rpc);
-    const oldS=new ethers.Contract(cur().oldShop,["function priceWatt(uint256) view returns (uint256)"],rp);
+  try{ await deploy("pool", ARTS.pool, [cur().wattV2, 0], 3000000n); }
+  catch(e){ toast("Pool deploy: "+((e.shortMessage||e.reason||e.message)+"").slice(0,110)+" — if your wallet shows success, paste the address in the box","err"); } };
+$("b2").onclick=async()=>{ const st=load(); if(!signer||!st.pool) return toast("Deploy the pool first","err");
+  try{ await deploy("shop", ARTS.shop, [cur().items, cur().wattV2, st.pool, cur().oracle, VAULT], 3000000n); }
+  catch(e){ toast("Shop deploy: "+((e.shortMessage||e.reason||e.message)+"").slice(0,110)+" — if your wallet shows success, paste the address in the box","err"); } };
+$("b3").onclick=async()=>{ const st=load(); if(!signer||!st.shop) return toast("Deploy the shop first","err");
+  try{ toast("Reading current prices…"); const oldS=new ethers.Contract(cur().oldShop,["function priceWatt(uint256) view returns (uint256)"],rp());
     const prices=[]; for(const id of IDS) prices.push(await oldS.priceWatt(id));
     const shop=new ethers.Contract(st.shop, ARTS.shop.abi, signer);
-    const r=await tx("Copy prices", shop.setPrices(IDS, prices, {gasLimit:800000n})); await r.wait();
-    st.priced="prices set ("+IDS.length+" items)"; save(st); renderState(); toast("Prices copied ✓ — deploy complete","ok"); }catch(e){} };
+    toast("Confirm 'set prices' in your wallet…"); const tx=await shop.setPrices(IDS, prices, {gasLimit:900000n}); await tx.wait();
+    st.priced="prices set ("+IDS.length+" items)"; save(st); renderState(); toast("Prices copied ✓ — deploy complete","ok"); }
+  catch(e){ toast("Copy prices: "+((e.shortMessage||e.reason||e.message)+"").slice(0,120),"err"); } };
+// manual paste fallbacks
+function useAddr(kind, inp){ const a=$(inp).value.trim(); if(!ethers.isAddress(a)) return toast("Enter a valid 0x address","err");
+  const st=load(); st[kind]=ethers.getAddress(a); save(st); renderState(); toast(kind+" address set — continue","ok"); }
+$("m1").onclick=()=>useAddr("pool","p1");
+$("m2").onclick=()=>useAddr("shop","p2");
 renderCfg();
 </script></body></html>
