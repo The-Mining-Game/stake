@@ -585,8 +585,20 @@ $("migAll").onclick=()=>{ if(!classicHeld.length) return toast("No classic compo
   tx(c(cur().migrator,ABI.migrator,true).migrate(ids,amts),`Swapped all ${ids.length} component type(s) 1:1`); };
 // watt
 $("approveOldWatt").onclick=()=>tx(c(cur().oldWatt,ABI.erc20,true).approve(cur().wattSwap,ethers.MaxUint256),"Old WATT approved");
-$("swapWatt").onclick=()=>{ const a=$("swAmt").value; if(!a) return toast("Enter an amount","err");
-  tx(c(cur().wattSwap,ABI.wattSwap,true).migrate(ethers.parseEther(a)),"Swapped to new WATT"); };
+$("swapWatt").onclick=async()=>{
+  if(!signer) return toast("Connect your wallet first","err");
+  const a=$("swAmt").value; if(!a||Number(a)<=0) return toast("Enter an amount","err");
+  let amt; try{ amt=ethers.parseEther(a); }catch{ return toast("Invalid amount","err"); }
+  const old=c(cur().oldWatt,ABI.erc20,true);
+  try{
+    const bal=await old.balanceOf(addr);
+    if(amt>bal) return toast("Amount exceeds your old WATT balance","err");
+    // auto-approve if the swap can't yet pull your old WATT (the usual reason swaps revert)
+    const allow=await old.allowance(addr,cur().wattSwap);
+    if(allow<amt){ toast("Approve old WATT…"); const at=await old.approve(cur().wattSwap,ethers.MaxUint256); await at.wait(); }
+    tx(c(cur().wattSwap,ABI.wattSwap,true).migrate(amt),"Swapped to new WATT ✓");
+  }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); }
+};
 $("approveVault").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().vault,ethers.MaxUint256),"Vault approved");
 $("depBtn").onclick=()=>{ const a=$("depAmt").value; if(!a) return toast("Enter an amount","err");
   tx(c(cur().vault,ABI.vault,true).depositToken(cur().watt,ethers.parseEther(a)),"Deposited to vault"); };
