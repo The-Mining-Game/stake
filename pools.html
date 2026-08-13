@@ -76,6 +76,10 @@
   </section>
 
   <section id="pane-mine" style="display:none">
+    <div class="card"><h2>Your mining rigs</h2>
+      <p class="d">Your Mining Rig NFTs on this chain. Click one to load it below, then point it at a pool.</p>
+      <div id="myRigs"><p class="d">Connect your wallet to list your rigs…</p></div>
+    </div>
     <div class="card"><h2>Point a rig at a pool</h2>
       <p class="d">Stake your Mining Rig NFT into a pool with some WATT as fuel. Its hashrate joins the pool and earns you a share of the validator's block rewards.</p>
       <div class="row"><div class="field"><label>Rig NFT id</label><input id="mRig" type="number" placeholder="your rig token id"></div>
@@ -86,7 +90,10 @@
   </section>
 
   <section id="pane-earn" style="display:none">
-    <div class="card"><h2>Your rig earnings</h2>
+    <div class="card"><h2>Your rigs &amp; pending rewards</h2>
+      <div id="myRigsEarn"><p class="d">Connect your wallet to list your rigs…</p></div>
+    </div>
+    <div class="card"><h2>Claim a rig</h2>
       <div class="row"><div class="field"><label>Rig NFT id</label><input id="eRig" type="number" placeholder="rig token id"></div>
         <button class="ghost" id="btnPending">Check pending</button><span class="stat" id="ePending"></span></div>
       <div class="row"><button id="btnClaim">Claim rewards</button><button class="ghost" id="btnStop">Stop mining</button></div>
@@ -124,9 +131,10 @@ const ABI = {
   registry:["function registerPoolWithNode(string,string,string,string,string,uint256,uint256,uint8[])","function isRegistered(address) view returns (bool)","function requiredStake() view returns (uint256)","function getPool(address) view returns (tuple(address operator,string name,string description,string endpoint,uint256 feePercent,uint256 minPayout,uint256 stakedAmount,uint256 registeredAt,uint256 unstakeRequestedAt,uint8 status,uint8[] supportedAlgorithms))"],
   engine:["function createPool(uint256,uint8,uint16,uint16,string,string) returns (uint256)","function startMining(address,uint256,uint256,uint256)","function claim(address,uint256)","function stopMining(address,uint256)","function pendingRewards(address,uint256) view returns (uint256)","function poolCount() view returns (uint256)","function pools(uint256) view returns (address owner,uint256 targetId,uint8 requiredAlgo,uint16 rewardFeeBps,uint16 wattCutBps,string name,string nodeEndpoint,bool active,uint256 hashRate,uint256 minersActive,uint256 feesEarned,uint256 wattEarned)"],
   hub:["function setPayoutAddress(uint256,string)","function payoutAddressFor(uint256,address) view returns (string)","function balanceOfTarget(uint256) view returns (uint256)","function targetCount() view returns (uint256)"],
-  rig:["function isApprovedForAll(address,address) view returns (bool)","function setApprovalForAll(address,bool)","function ownerOf(uint256) view returns (address)","function isStaked(uint256) view returns (bool)","function rigTraits(uint256) view returns (tuple(uint16 hashRate,uint16 efficiency,uint16 wattConsumption,uint8 tier,uint8 algorithm))"],
+  rig:["function isApprovedForAll(address,address) view returns (bool)","function setApprovalForAll(address,bool)","function ownerOf(uint256) view returns (address)","function isStaked(uint256) view returns (bool)","function isMining(uint256) view returns (bool)","function balanceOf(address) view returns (uint256)","function tokenOfOwnerByIndex(address,uint256) view returns (uint256)","function rigTraits(uint256) view returns (tuple(uint16 hashRate,uint8 algorithm,uint8 efficiency,uint16 wattConsumption,uint8 rarity,uint8 cooling,uint8 durability))"],
 };
 const ANY_ALGO=255, POS_ACTIVATE=7200000n;
+const ALGO=["SHA256D","Scrypt","Ethash","RandomX","Equihash","X11","kHeavyHash"];
 let provider, signer, addr, chainId=137;
 const $=id=>document.getElementById(id), cur=()=>CFG[chainId];
 let _rp={}; const rc=(a,abi)=>new ethers.Contract(a,abi,(_rp[chainId]||=new ethers.JsonRpcProvider(cur().rpc)));
@@ -167,7 +175,30 @@ function renderTargets(){ const box=$("targets"); box.innerHTML=TARGETS.map(t=>`
 async function renderDrip(){ try{ const h=await (_rp[chainId]||=new ethers.JsonRpcProvider(cur().rpc)).getBlockNumber();
   if(chainId===2330){ $("altHeight").textContent=h.toLocaleString(); const left=Number(POS_ACTIVATE)-h; $("altToPos").textContent=left>0?left.toLocaleString():"PoS ACTIVE"; }
   else { $("altHeight").textContent="(switch to Altcoinchain)"; $("altToPos").textContent="—"; } }catch(e){} }
-async function refreshAll(){ renderPools(); if(addr){ try{ $("wattbal").textContent="WATT "+fmt(await rc(cur().watt,ABI.erc20).balanceOf(addr)); }catch{} renderHost(); } renderDrip(); }
+async function renderRigs(){
+  const boxA=$("myRigs"), boxE=$("myRigsEarn"); if(!addr){ return; }
+  try{
+    const rig=rc(cur().rigNft,ABI.rig), eng=rc(cur().engine,ABI.engine);
+    const n=Number(await rig.balanceOf(addr));
+    if(!n){ const msg='<p class="d">No Mining Rig NFTs in this wallet on '+cur().name+'. Mint one to start pool mining.</p>'; boxA.innerHTML=msg; boxE.innerHTML=msg; return; }
+    let a='', e='';
+    for(let i=0;i<n;i++){ const id=await rig.tokenOfOwnerByIndex(addr,i);
+      let t,staked=false,mining=false,pend=0n; try{ t=await rig.rigTraits(id); }catch{}
+      try{ staked=await rig.isStaked(id); }catch{} try{ mining=await rig.isMining(id); }catch{}
+      try{ pend=await eng.pendingRewards(cur().rigNft,id); }catch{}
+      const hash=t?Number(t.hashRate):'?', algo=t?(ALGO[Number(t.algorithm)]||'algo '+t.algorithm):'?';
+      const status=mining?'<span class="chip" style="color:var(--grn)">mining</span>':staked?'<span class="chip">staked</span>':'<span class="chip">idle</span>';
+      a+=`<div class="pool"><div class="n">Rig #${id} ${status}</div><div class="m">⛏ ${hash} hash · ${algo}</div>
+        <div class="row"><button class="ghost" data-loadmine="${id}">Use this rig</button></div></div>`;
+      e+=`<div class="pool"><div class="n">Rig #${id} ${status}</div><div class="m">⛏ ${hash} hash · ${algo}</div>
+        <div class="row"><span class="stat">${fmt(pend,4)} pending</span><button data-claim="${id}">Claim</button><button class="ghost" data-loadearn="${id}">Load</button></div></div>`; }
+    boxA.innerHTML=a; boxE.innerHTML=e;
+    boxA.querySelectorAll('[data-loadmine]').forEach(b=>b.onclick=()=>{ $("mRig").value=b.dataset.loadmine; toast("Rig #"+b.dataset.loadmine+" loaded — set pool + WATT"); });
+    boxE.querySelectorAll('[data-loadearn]').forEach(b=>b.onclick=()=>{ $("eRig").value=b.dataset.loadearn; $("btnPending").click(); });
+    boxE.querySelectorAll('[data-claim]').forEach(b=>b.onclick=()=>{ if(!signer) return toast("Connect first","err"); tx("Claim",c(cur().engine,ABI.engine,true).claim(cur().rigNft,BigInt(b.dataset.claim),{gasLimit:300000n}),"Claimed ✓"); });
+  }catch(e){ /* rig read hiccup */ }
+}
+async function refreshAll(){ renderPools(); if(addr){ try{ $("wattbal").textContent="WATT "+fmt(await rc(cur().watt,ABI.erc20).balanceOf(addr)); }catch{} renderHost(); renderRigs(); } renderDrip(); }
 // actions
 $("btnRegister").onclick=async()=>{ if(!signer) return toast("Connect first","err");
   const name=$("hName").value.trim(), strat=$("hStratum").value.trim()||"stratum+tcp://pool:3333", rpc=$("hRpc").value.trim()||cur().rpc, p2p=$("hP2p").value.trim()||"node:30303", fee=Math.round((+$("hFee").value||2));
