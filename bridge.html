@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WATT Bridge — The Mining Game</title>
+<style>
+  :root{
+    --bg:#0a0f0c; --panel:#0f1712; --panel2:#12211a; --line:#1d3327;
+    --ink:#e8ffe9; --muted:#8fb69c; --dim:#5f8570;
+    --acc:#39ff88; --acc2:#00d15a; --warn:#ffcc55; --bad:#ff5d6c;
+    --shadow:0 18px 50px rgba(0,0,0,.55);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-text-size-adjust:100%}
+  body{background:
+     radial-gradient(1100px 480px at 82% -8%, rgba(57,255,136,.10), transparent 60%),
+     radial-gradient(900px 420px at 8% 108%, rgba(0,209,90,.07), transparent 60%),
+     var(--bg);min-height:100vh}
+  a{color:var(--acc)}
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 60px}
+  header{display:flex;align-items:center;gap:12px;padding:8px 2px 20px}
+  header .logos{display:flex;align-items:center;gap:10px;min-width:0}
+  header img{height:34px;width:auto;image-rendering:pixelated;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  header .watt{height:30px;image-rendering:auto}
+  header .sub{margin-left:auto;font:600 11px/1 var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase;text-align:right}
+  nav{display:flex;gap:14px;font:600 13px var(--sans);padding:0 2px 14px}
+  nav a{color:var(--muted);text-decoration:none}
+  nav a:hover{color:var(--acc)}
+  .card{background:linear-gradient(180deg,var(--panel),#0b120e);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+  h1{font-size:19px;margin:0 0 2px;letter-spacing:.2px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.5}
+  .banner{border:1px solid;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin:0 0 16px;display:flex;gap:9px;align-items:flex-start}
+  .banner.warn{border-color:rgba(255,204,85,.4);background:rgba(255,204,85,.07);color:#ffe9b0}
+  .banner.ok{border-color:rgba(57,255,136,.35);background:rgba(57,255,136,.06);color:#bcffd6}
+  .banner b{color:#fff}
+  .leg{display:grid;grid-template-columns:1fr 44px 1fr;gap:8px;align-items:stretch;margin:0 0 12px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .chip .k{font:600 10px/1 var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  .chip .v{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+  .c-alt{color:#8f7bff}.c-pol{color:#a06bff}.c-wtx{color:var(--acc)}
+  .flip{align-self:center;background:var(--panel2);border:1px solid var(--line);color:var(--acc);border-radius:12px;height:44px;font-size:18px;cursor:pointer;transition:.15s}
+  .flip:hover{background:#173225;transform:rotate(180deg)}
+  .amt{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 6px}
+  .amt .row{display:flex;align-items:center;gap:8px}
+  .amt input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:800 26px/1.1 var(--sans)}
+  .amt .tok{font-weight:800;color:var(--acc);font-size:15px}
+  .amt .max{background:rgba(57,255,136,.12);color:var(--acc);border:1px solid rgba(57,255,136,.3);border-radius:8px;padding:5px 9px;font:700 11px var(--mono);cursor:pointer}
+  .bal{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 3px;margin-bottom:14px}
+  .bal b{color:var(--ink)}
+  .route{border:1px dashed var(--line);border-radius:12px;padding:11px 13px;font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 16px}
+  .route .r{display:flex;justify-content:space-between;gap:12px}
+  .route .r span:last-child{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+  .route .path{color:var(--dim);font:600 11px var(--mono);letter-spacing:.03em;border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+  button.act{width:100%;border:0;border-radius:14px;padding:15px;font:800 15px var(--sans);cursor:pointer;transition:.15s;margin-top:4px}
+  button.act.primary{background:linear-gradient(180deg,var(--acc),var(--acc2));color:#04170c;box-shadow:0 10px 26px rgba(57,255,136,.25)}
+  button.act.primary:hover{filter:brightness(1.06)}
+  button.act.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  button.act:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;filter:none}
+  .steps{margin:14px 0 0;padding:0;list-style:none;font-size:12.5px}
+  .steps li{display:flex;gap:9px;align-items:center;padding:5px 0;color:var(--dim)}
+  .steps li.on{color:var(--ink)}
+  .steps li.done{color:var(--acc)}
+  .steps .n{width:20px;height:20px;border-radius:50%;border:1px solid currentColor;display:grid;place-items:center;font:700 11px var(--mono);flex:none}
+  .log{margin-top:14px;background:#060b08;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:12px/1.6 var(--mono);color:var(--muted);max-height:150px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+  .log:empty{display:none}
+  .foot{color:var(--dim);font-size:11px;text-align:center;margin-top:22px;line-height:1.6}
+  .conn{margin-left:auto}
+  @media (max-width:420px){
+    .wrap{padding:14px 12px 48px}
+    .amt input{font-size:22px}
+    header .sub{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logos">
+      <img class="mg" src="https://stake.mining-game.wattxchange.app/mg-logo.png" alt="The Mining Game"
+           onerror="this.style.display='none'">
+      <img class="watt" src="https://stake.mining-game.wattxchange.app/watt.png" alt="WATT"
+           onerror="this.style.display='none'">
+    </div>
+    <div class="sub">WATT<br>Bridge</div>
+  </header>
+  <nav>
+    <a href="index.html">◂ Stake</a>
+    <a href="pools.html">⛏ Pools</a>
+    <a href="#" style="color:var(--acc)">🌉 Bridge</a>
+  </nav>
+
+  <div class="card">
+    <h1>Bridge WATT across chains</h1>
+    <p class="lead">Move native <b>WATT v2</b> between Altcoinchain and Polygon over your own
+      LayerZero mesh. WATT is <b>burned</b> on the source chain and <b>minted</b> on the
+      destination — same token, same supply, 1:1. No wrapped IOUs.</p>
+
+    <div id="banner"></div>
+
+    <div class="leg">
+      <div class="chip">
+        <div class="k">From</div>
+        <div class="v"><span id="fromDot" class="dot c-alt"></span><span id="fromName">Altcoinchain</span></div>
+      </div>
+      <button class="flip" id="flip" title="Swap direction">⇅</button>
+      <div class="chip">
+        <div class="k">To</div>
+        <div class="v"><span id="toDot" class="dot c-pol"></span><span id="toName">Polygon</span></div>
+      </div>
+    </div>
+
+    <div class="amt">
+      <div class="row">
+        <input id="amt" inputmode="decimal" placeholder="0.0" autocomplete="off">
+        <span class="tok">WATT</span>
+        <span class="max" id="max">MAX</span>
+      </div>
+    </div>
+    <div class="bal"><span>Balance on <span id="balChain">source</span></span><b><span id="bal">—</span> WATT</b></div>
+
+    <div class="route">
+      <div class="r"><span>You send</span><span><span id="rSend">0</span> WATT</span></div>
+      <div class="r"><span>You receive</span><span><span id="rRecv">0</span> WATT</span></div>
+      <div class="r"><span>Network fee (est.)</span><span><span id="rFee">—</span> <span id="rFeeSym">ALT</span></span></div>
+      <div class="r"><span>Delivery (est.)</span><span id="rEta">~1–3 min</span></div>
+      <div class="path" id="rPath">BURN on Altcoinchain → LayerZero → MINT on Polygon</div>
+    </div>
+
+    <button class="act primary" id="cta">Connect wallet</button>
+
+    <ul class="steps" id="steps" hidden>
+      <li data-s="approve"><span class="n">1</span><span>Approve WATT to the bridge adapter</span></li>
+      <li data-s="send"><span class="n">2</span><span>Burn on source & emit LayerZero message</span></li>
+      <li data-s="deliver"><span class="n">3</span><span>DVN verifies → mint on destination</span></li>
+    </ul>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="foot">
+    Self-hosted LayerZero V2 · burn-and-mint · <span id="modeTag">preview</span> mode<br>
+    Reads via public RPC · writes signed by your wallet · keys never leave your device
+  </div>
+</div>
+
+<script type="module">
+import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
+
+/* ---- CONFIG ----------------------------------------------------------------
+   eid == chainid (our private mesh). `oft` = the WattOFTAdapter on that chain,
+   `endpoint` = our EndpointV2. Fill these in after DeployWattStack runs; while
+   they are empty the page runs in PREVIEW mode (full UX, no on-chain send).   */
+const CFG = {
+  2330: { name:"Altcoinchain", short:"ALT", hex:"0x91a", cls:"c-alt", sym:"ALT",
+          rpc:"https://rpc.wattxchange.app",
+          watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D",
+          oft:"", endpoint:"", conf:6 },
+  137:  { name:"Polygon", short:"POL", hex:"0x89", cls:"c-pol", sym:"POL",
+          rpc:"https://polygon-bor-rpc.publicnode.com",
+          watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f",
+          oft:"", endpoint:"", conf:40 },
+};
+const ORDER = [2330, 137];
+
+const OFT_ABI = [
+  "function quoteSend((uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd) sendParam, bool payInLzToken) view returns ((uint256 nativeFee,uint256 lzTokenFee))",
+  "function send((uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd) sendParam,(uint256 nativeFee,uint256 lzTokenFee) fee,address refundAddress) payable returns ((bytes32 guid,uint64 nonce,(uint256 nativeFee,uint256 lzTokenFee) fee),(uint256 amountSentLD,uint256 amountReceivedLD))",
+];
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+  "function decimals() view returns (uint8)",
+];
+
+const $ = s => document.querySelector(s);
+const log = m => { const l=$("#log"); l.textContent += (l.textContent?"\n":"") + m; l.scrollTop=l.scrollHeight; };
+const fmt = (bn,d=18,p=4) => { const n=Number(ethers.formatUnits(bn,d)); return n.toLocaleString(undefined,{maximumFractionDigits:p}); };
+
+let provider, signer, account, chainId;
+let from = 2330, to = 137;                 // default direction
+const _rp = {};
+const rp = id => (_rp[id] ||= new ethers.JsonRpcProvider(CFG[id].rpc));
+const live = id => CFG[id].oft && CFG[id].endpoint;   // is the pathway deployed on `id`?
+let _gp = {};                              // legacy gasPrice cache (coalesce-proofing)
+
+async function loadGas(id){ try{ _gp[id]=(await rp(id).getFeeData()).gasPrice; }catch(e){} }
+const ov = (id,gasLimit)=> _gp[id] ? {gasLimit,gasPrice:_gp[id],type:0} : {gasLimit};
+
+function paintDir(){
+  const f=CFG[from], t=CFG[to];
+  $("#fromName").textContent=f.name; $("#toName").textContent=t.name;
+  $("#fromDot").className="dot "+f.cls; $("#toDot").className="dot "+t.cls;
+  $("#balChain").textContent=f.name; $("#rFeeSym").textContent=f.sym;
+  $("#rPath").textContent=`BURN on ${f.name} → LayerZero → MINT on ${t.name}`;
+  $("#rEta").textContent = f.conf>=40 ? "~2–5 min" : "~1–3 min";
+  refreshBalance(); recalc();
+  const deployed = live(from) && live(to);
+  $("#modeTag").textContent = deployed ? "live" : "preview";
+  banner(deployed);
+}
+function banner(deployed){
+  const b=$("#banner");
+  if(deployed){ b.className="banner ok"; b.innerHTML="🌉 <span>Bridge is <b>live</b> on this route. Enter an amount and bridge.</span>"; }
+  else { b.className="banner warn"; b.innerHTML="🧪 <span><b>Preview mode.</b> The LayerZero adapters aren't deployed on this route yet, so this walks the full flow and quotes without sending a real transaction. Deploy <code>DeployWattStack</code> on both chains, paste the adapter addresses into <code>CFG.oft/endpoint</code>, and it flips to live automatically.</span>"; }
+}
+
+async function refreshBalance(){
+  $("#bal").textContent="—";
+  if(!account) return;
+  try{
+    const w=new ethers.Contract(CFG[from].watt, ERC20_ABI, rp(from));
+    const b=await w.balanceOf(account);
+    $("#bal").textContent=fmt(b,18,2);
+    $("#bal").dataset.raw=b.toString();
+  }catch(e){ $("#bal").textContent="?"; }
+}
+function recalc(){
+  const v=parseFloat($("#amt").value||"0")||0;
+  $("#rSend").textContent=v.toLocaleString(undefined,{maximumFractionDigits:4});
+  $("#rRecv").textContent=v.toLocaleString(undefined,{maximumFractionDigits:4}); // 1:1, no fee
+  updateCta();
+}
+function updateCta(){
+  const c=$("#cta");
+  if(!account){ c.textContent="Connect wallet"; c.disabled=false; c.className="act primary"; return; }
+  if(chainId!==from){ c.textContent=`Switch wallet to ${CFG[from].name}`; c.disabled=false; c.className="act ghost"; return; }
+  const v=parseFloat($("#amt").value||"0")||0;
+  if(v<=0){ c.textContent="Enter an amount"; c.disabled=true; c.className="act primary"; return; }
+  const deployed = live(from)&&live(to);
+  c.disabled=false; c.className="act primary";
+  c.textContent = deployed ? `Bridge ${v.toLocaleString()} WATT → ${CFG[to].short}`
+                           : `Preview bridge → ${CFG[to].short}`;
+}
+
+/* ---- wallet ---- */
+async function connect(){
+  if(!window.ethereum){ log("No injected wallet found. Install Rabby or MetaMask."); return; }
+  provider=new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts",[]);
+  signer=await provider.getSigner();
+  account=await signer.getAddress();
+  chainId=Number((await provider.getNetwork()).chainId);
+  window.ethereum.on?.("chainChanged",()=>location.reload());
+  window.ethereum.on?.("accountsChanged",()=>location.reload());
+  log(`Connected ${account.slice(0,6)}…${account.slice(-4)} on chain ${chainId}`);
+  await loadGas(from); await loadGas(to);
+  refreshBalance(); updateCta();
+}
+async function switchChain(id){
+  try{ await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CFG[id].hex}]}); }
+  catch(e){
+    if(e.code===4902){ await window.ethereum.request({method:"wallet_addEthereumChain",params:[{
+      chainId:CFG[id].hex, chainName:CFG[id].name, rpcUrls:[CFG[id].rpc],
+      nativeCurrency:{name:CFG[id].sym,symbol:CFG[id].sym,decimals:18} }]}); }
+    else throw e;
+  }
+}
+
+/* ---- the bridge action ---- */
+function sendParam(amtWei, recip){
+  return {
+    dstEid: to,
+    to: ethers.zeroPadValue(recip, 32),
+    amountLD: amtWei,
+    minAmountLD: amtWei,            // 1:1, no fee/slippage on a burn-mint OFT
+    extraOptions: "0x",            // enforced options (lzReceive gas) set on-chain
+    composeMsg: "0x",
+    oftCmd: "0x",
+  };
+}
+function step(name,state){ const el=document.querySelector(`.steps li[data-s="${name}"]`); if(el) el.className=state; }
+
+async function doBridge(){
+  const v=parseFloat($("#amt").value||"0")||0; if(v<=0) return;
+  const amtWei=ethers.parseUnits(String(v),18);
+  const deployed = live(from)&&live(to);
+  $("#steps").hidden=false; $("#log").textContent="";
+  const c=$("#cta"); c.disabled=true;
+
+  try{
+    if(!deployed){
+      // PREVIEW — walk the flow, quote nothing on-chain.
+      log("PREVIEW: no adapters deployed on this route yet.");
+      step("approve","on"); await sleep(500); log(`• would approve ${v} WATT to the adapter on ${CFG[from].name}`); step("approve","done");
+      step("send","on"); await sleep(600);
+      log(`• would call send() burning ${v} WATT on ${CFG[from].name} (eid ${from})`);
+      log(`• LayerZero message → dstEid ${to} (${CFG[to].name})`); step("send","done");
+      step("deliver","on"); await sleep(600);
+      log(`• DVN verifies after ${CFG[from].conf} confs → mint ${v} WATT to you on ${CFG[to].name}`); step("deliver","done");
+      log("PREVIEW complete. Flip CFG.oft/endpoint to go live.");
+      c.disabled=false; return;
+    }
+
+    if(chainId!==from){ await switchChain(from); return; }
+    const wattW=new ethers.Contract(CFG[from].watt, ERC20_ABI, signer);
+    const oftW =new ethers.Contract(CFG[from].oft,  OFT_ABI,   signer);
+    const oftR =new ethers.Contract(CFG[from].oft,  OFT_ABI,   rp(from));
+
+    // 1) approve (burnFrom pulls via allowance)
+    const wattR=new ethers.Contract(CFG[from].watt, ERC20_ABI, rp(from));
+    const allow=await wattR.allowance(account, CFG[from].oft);
+    if(allow<amtWei){
+      step("approve","on"); log("Approving WATT to the adapter…");
+      const tx=await wattW.approve(CFG[from].oft, amtWei, ov(from,80000n));
+      log("  approve tx "+tx.hash); await tx.wait(); step("approve","done");
+    } else { step("approve","done"); log("Allowance already sufficient."); }
+
+    // 2) quote + send (burns on source)
+    step("send","on");
+    const sp=sendParam(amtWei, account);
+    const fee=await oftR.quoteSend(sp, false);
+    log(`Quoted native fee: ${fmt(fee.nativeFee,18,6)} ${CFG[from].sym}`);
+    $("#rFee").textContent=fmt(fee.nativeFee,18,6);
+    const tx=await oftW.send(sp, {nativeFee:fee.nativeFee, lzTokenFee:0n}, account,
+                             Object.assign({value:fee.nativeFee}, ov(from,320000n)));
+    log("send tx "+tx.hash); const rc=await tx.wait();
+    log("  burned on "+CFG[from].name+" @ block "+rc.blockNumber); step("send","done");
+
+    // 3) delivery is off-chain (DVN worker) → mint on dst
+    step("deliver","on");
+    log(`Waiting for the DVN worker to verify (${CFG[from].conf} confs) and mint on ${CFG[to].name}…`);
+    watchMint(amtWei);
+  }catch(e){
+    const msg=e?.shortMessage||e?.reason||e?.message||String(e);
+    log("✖ "+msg);
+    if(/coalesce/i.test(msg)) log("Tip: set your wallet's "+CFG[from].name+" RPC to "+CFG[from].rpc);
+    c.disabled=false;
+  }
+}
+
+async function watchMint(amtWei){
+  // poll destination WATT balance for the +amount mint
+  const w=new ethers.Contract(CFG[to].watt, ERC20_ABI, rp(to));
+  let base; try{ base=await w.balanceOf(account); }catch(e){ base=0n; }
+  let n=0;
+  const iv=setInterval(async ()=>{
+    n++;
+    try{
+      const b=await w.balanceOf(account);
+      if(b-base >= amtWei*99n/100n){
+        clearInterval(iv); step("deliver","done");
+        log(`✔ Minted ${fmt(amtWei,18,2)} WATT on ${CFG[to].name}. Bridge complete.`);
+        $("#cta").disabled=false; refreshBalance();
+      }
+    }catch(e){}
+    if(n>60){ clearInterval(iv); log("Still pending — the worker will mint once confirmations clear. Balance will update on "+CFG[to].name+"."); $("#cta").disabled=false; }
+  }, 5000);
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---- events ---- */
+$("#flip").onclick=()=>{ [from,to]=[to,from]; loadGas(from); paintDir(); updateCta(); };
+$("#amt").oninput=recalc;
+$("#max").onclick=()=>{ const raw=$("#bal").dataset.raw; if(raw){ $("#amt").value=ethers.formatUnits(raw,18); recalc(); } };
+$("#cta").onclick=async ()=>{
+  if(!account) return connect();
+  if(chainId!==from) return switchChain(from);
+  doBridge();
+};
+
+paintDir(); updateCta();
+</script>
+</body>
+</html>
