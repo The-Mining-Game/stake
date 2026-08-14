@@ -315,24 +315,36 @@ async function grantMinter(){
     if(await wr.hasRole(MINTER_ROLE, s.adapter)){
       s.minter=true; save(chainId,s); log("✓ Adapter already has MINTER_ROLE on "+CFG[chainId].name); paintChains(); $("#minter").disabled=false; return;
     }
-    // WATT admin is a multisig — surface the exact call so it can be submitted there,
-    // and also try a direct grant in case the connected wallet holds DEFAULT_ADMIN_ROLE.
+    // WATT admin is a MULTISIG CONTRACT, not an EOA. The grant must be PROPOSED
+    // through that multisig (submit→confirm→execute) — a direct grant from any single
+    // wallet (even a multisig owner) reverts. So: only attempt a direct grant if the
+    // connected wallet itself holds DEFAULT_ADMIN_ROLE; otherwise hand off to the multisig UI.
     const iface=new ethers.Interface(ROLE_ABI);
     const data=iface.encodeFunctionData("grantRole",[MINTER_ROLE, s.adapter]);
-    $("#out").textContent =
-      "// GRANT MINTER via the WATT v2 admin (multisig) on "+CFG[chainId].name+":\n"+
-      "to:   "+wattAddr+"\n"+
-      "data: "+data+"\n"+
-      "(this calls grantRole(MINTER_ROLE, "+s.adapter+"))";
-    log("Trying a direct grantRole (works only if this wallet holds DEFAULT_ADMIN_ROLE)…");
+    let iAmAdmin=false;
+    try{ iAmAdmin=await wr.hasRole("0x"+"0".repeat(64), account); }catch(e){}
+    if(!iAmAdmin){
+      $("#out").textContent =
+        "// GRANT MINTER via your WATT admin MULTISIG on "+CFG[chainId].name+"\n"+
+        "// Use multisig.wattxchange.app → \"grant WATT v2 minter role\" and paste the adapter,\n"+
+        "// OR a Raw proposal with:\n"+
+        "to:   "+wattAddr+"\n"+
+        "value: 0\n"+
+        "data: "+data+"\n"+
+        "// then confirm with the 2nd owner and Execute. (adapter = "+s.adapter+")";
+      log("This chain's WATT admin is a multisig — grant can't be sent from a single wallet.");
+      log("→ Do it in your multisig UI (multisig.wattxchange.app): grant-minter → adapter "+s.adapter+", confirm with both owners, execute.");
+      log("→ Then click this button again to confirm the role landed.");
+      $("#minter").disabled=false; return;
+    }
+    log("This wallet holds DEFAULT_ADMIN_ROLE — granting directly…");
     const w=new ethers.Contract(wattAddr, ROLE_ABI, signer);
     const tx=await w.grantRole(MINTER_ROLE, s.adapter, ov(120000n));
     log("grantRole tx "+tx.hash); await tx.wait();
     s.minter=true; save(chainId,s); log("✓ Adapter now has MINTER_ROLE on "+CFG[chainId].name); paintChains();
   }catch(e){
     const m=e?.shortMessage||e?.reason||e?.message||e;
-    log("✖ direct grant failed: "+m);
-    log("→ This wallet isn't the WATT admin. Submit the to/data shown above through your WATT multisig, then click Grant again to confirm.");
+    log("✖ "+m);
   }
   $("#minter").disabled=false;
 }
