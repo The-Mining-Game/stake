@@ -101,6 +101,9 @@
     <label>Remote adapter address <span style="text-transform:none;color:var(--dim)">(auto once the other chain is deployed)</span></label>
     <input id="remoteOft" placeholder="deploy the other chain first, or paste it">
 
+    <label>Owner multisig <span style="text-transform:none;color:var(--dim)">(gets config ownership at lockdown — WATT admin on ALT)</span></label>
+    <input id="ownerMsig" placeholder="0x… your 2-of-2 multisig on this chain">
+
     <ul class="steps" id="steps"></ul>
 
     <div class="btns">
@@ -108,6 +111,7 @@
       <button class="ghost" id="wire">Set peer →</button>
     </div>
     <button class="ghost" id="minter">Grant adapter MINTER_ROLE on WATT v2</button>
+    <button class="ghost" id="lock" style="border-color:rgba(255,204,85,.4)">🔒 Hand config ownership → multisig (do last)</button>
 
     <div class="log" id="log"></div>
     <div class="out" id="out"></div>
@@ -126,9 +130,11 @@ import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
 const ART = JSON.parse(document.getElementById("artifacts").textContent);
 const CFG = {
   2330: { name:"Altcoinchain", hex:"0x91a", cls:"c-alt", rpc:"https://rpc.wattxchange.app",
-          watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D", conf:6, remoteEid:137, sym:"ALT" },
+          watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D", conf:6, remoteEid:137, sym:"ALT",
+          ownerMsig:"0x59bDaFd1D4dc46648204044eB7259Ea1f08A9280" }, // WATT admin 2-of-2
   137:  { name:"Polygon", hex:"0x89", cls:"c-pol", rpc:"https://polygon-bor-rpc.publicnode.com",
-          watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f", conf:40, remoteEid:2330, sym:"POL" },
+          watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f", conf:40, remoteEid:2330, sym:"POL",
+          ownerMsig:"" }, // enter your Polygon multisig
 };
 const LZ_RECEIVE_GAS = 250000n;
 // WATT v2 is OpenZeppelin AccessControl: mint is gated by MINTER_ROLE, granted by the
@@ -137,6 +143,12 @@ const MINTER_ROLE = "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981
 const ROLE_ABI = [
   "function grantRole(bytes32,address)",
   "function hasRole(bytes32,address) view returns (bool)",
+];
+// ownership lockdown: move every mesh contract's owner (and the OApp delegate) to the multisig
+const OWN_ABI = [
+  "function transferOwnership(address)",
+  "function setDelegate(address)",
+  "function owner() view returns (address)",
 ];
 
 const $=s=>document.querySelector(s);
@@ -187,7 +199,7 @@ function paintChains(){
   for(const [id,el,st] of [[2330,"#cnAlt","#stAlt"],[137,"#cnPol","#stPol"]]){
     const s=state(id); const done=s.adapter&&s.cfgEnforced;
     $(st).innerHTML = s.adapter
-      ? `adapter <span class="ok">${s.adapter.slice(0,8)}…</span>${s.peer?" · peered":""}${s.minter?" · minter":""}`
+      ? `adapter <span class="ok">${s.adapter.slice(0,8)}…</span>${s.peer?" · peered":""}${s.minter?" · minter":""}${s.owned?" · 🔒locked":""}`
       : (Object.keys(s).length? "in progress…" : "not deployed");
     $(el).classList.toggle("active", id===chainId);
   }
@@ -201,6 +213,7 @@ function fillPanel(){
   $("#watt").value=c.watt;
   const other=state(c.remoteEid);
   if(other.adapter && !$("#remoteOft").value) $("#remoteOft").value=other.adapter;
+  if(!$("#ownerMsig").value) $("#ownerMsig").value=c.ownerMsig||"";
   renderSteps(); paintChains();
 }
 
@@ -324,6 +337,33 @@ async function grantMinter(){
   $("#minter").disabled=false;
 }
 
+async function handOwnership(){
+  const s=state(chainId);
+  if(!(s.endpoint&&s.sendUln&&s.receiveUln&&s.worker&&s.adapter)){ alert("Deploy the full stack on this chain first."); return; }
+  if(!s.peer){ if(!confirm("You haven't Set Peer yet on this chain. setPeer needs deployer ownership, so do it BEFORE locking. Continue anyway?")) return; }
+  const msig=$("#ownerMsig").value.trim();
+  if(!ethers.isAddress(msig)){ alert("Enter the owner multisig address for this chain."); return; }
+  if(!confirm("Transfer config ownership of the bridge on "+CFG[chainId].name+" to\n"+msig+" ?\n\nAfter this, ONLY that multisig can reconfigure the mesh (setPeer, ULN/DVN config, delegate). The deployer/DVN key becomes relayer-only. This is the intended lockdown and is not reversible from here.")) return;
+  $("#lock").disabled=true;
+  try{
+    // setDelegate FIRST (needs deployer to still own the adapter), then transfer owners.
+    const ad=new ethers.Contract(s.adapter, OWN_ABI, signer);
+    log("Setting OApp delegate → multisig…");
+    let tx=await ad.setDelegate(msig, ov(150000n)); await tx.wait(); log("  ✓ delegate");
+    const targets=[["adapter",s.adapter],["endpoint",s.endpoint],["sendUln",s.sendUln],["receiveUln",s.receiveUln],["worker",s.worker]];
+    for(const [nm,addr] of targets){
+      const c=new ethers.Contract(addr, OWN_ABI, signer);
+      let cur; try{ cur=await c.owner(); }catch(e){ cur=null; }
+      if(cur && cur.toLowerCase()===msig.toLowerCase()){ log("  ✓ "+nm+" already owned by multisig"); continue; }
+      log("transferOwnership "+nm+" → multisig…");
+      tx=await c.transferOwnership(msig, ov(150000n)); await tx.wait(); log("  ✓ "+nm);
+    }
+    s.owned=msig; save(chainId,s); paintChains();
+    log("🔒 Lockdown complete on "+CFG[chainId].name+". The multisig now owns the bridge config; 0x6990 is relayer-only.");
+  }catch(e){ log("✖ "+(e?.shortMessage||e?.reason||e?.message||e)); }
+  $("#lock").disabled=false;
+}
+
 function emitCfg(){
   const a=state(2330), p=state(137);
   const line=(id,s)=>`  ${id}:  { oft:"${s.adapter||""}", endpoint:"${s.endpoint||""}" },`;
@@ -336,6 +376,7 @@ $("#connect").onclick=connect;
 $("#deploy").onclick=runDeploy;
 $("#wire").onclick=setPeer;
 $("#minter").onclick=grantMinter;
+$("#lock").onclick=handOwnership;
 paintChains();
 </script>
 </body>
