@@ -107,7 +107,7 @@
       <button class="primary" id="deploy">Deploy stack on this chain</button>
       <button class="ghost" id="wire">Set peer →</button>
     </div>
-    <button class="ghost" id="minter">Grant adapter minter on WATT v2</button>
+    <button class="ghost" id="minter">Grant adapter MINTER_ROLE on WATT v2</button>
 
     <div class="log" id="log"></div>
     <div class="out" id="out"></div>
@@ -131,7 +131,13 @@ const CFG = {
           watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f", conf:40, remoteEid:2330, sym:"POL" },
 };
 const LZ_RECEIVE_GAS = 250000n;
-const SETMINTER_ABI = ["function setMinter(address,bool)","function owner() view returns (address)"];
+// WATT v2 is OpenZeppelin AccessControl: mint is gated by MINTER_ROLE, granted by the
+// DEFAULT_ADMIN_ROLE holder (a multisig). Grant = grantRole(MINTER_ROLE, adapter).
+const MINTER_ROLE = "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6";
+const ROLE_ABI = [
+  "function grantRole(bytes32,address)",
+  "function hasRole(bytes32,address) view returns (bool)",
+];
 
 const $=s=>document.querySelector(s);
 const log=m=>{const l=$("#log");l.textContent+=(l.textContent?"\n":"")+m;l.scrollTop=l.scrollHeight;};
@@ -289,13 +295,32 @@ async function setPeer(){
 }
 async function grantMinter(){
   const s=state(chainId); if(!s.adapter){ alert("Deploy this chain first."); return; }
+  const wattAddr=CFG[chainId].watt;
   $("#minter").disabled=true;
   try{
-    const w=new ethers.Contract(CFG[chainId].watt, SETMINTER_ABI, signer);
-    const tx=await w.setMinter(s.adapter, true, ov(120000n));
-    log("setMinter tx "+tx.hash); await tx.wait();
-    s.minter=true; save(chainId,s); log("✓ Adapter is now a WATT minter on "+CFG[chainId].name); paintChains();
-  }catch(e){ const m=e?.shortMessage||e?.message||e; log("✖ "+m); if(/owner|revert/i.test(String(m))) log("  (this wallet must be the WATT v2 owner to grant minter)"); }
+    const wr=new ethers.Contract(wattAddr, ROLE_ABI, rp(chainId));
+    if(await wr.hasRole(MINTER_ROLE, s.adapter)){
+      s.minter=true; save(chainId,s); log("✓ Adapter already has MINTER_ROLE on "+CFG[chainId].name); paintChains(); $("#minter").disabled=false; return;
+    }
+    // WATT admin is a multisig — surface the exact call so it can be submitted there,
+    // and also try a direct grant in case the connected wallet holds DEFAULT_ADMIN_ROLE.
+    const iface=new ethers.Interface(ROLE_ABI);
+    const data=iface.encodeFunctionData("grantRole",[MINTER_ROLE, s.adapter]);
+    $("#out").textContent =
+      "// GRANT MINTER via the WATT v2 admin (multisig) on "+CFG[chainId].name+":\n"+
+      "to:   "+wattAddr+"\n"+
+      "data: "+data+"\n"+
+      "(this calls grantRole(MINTER_ROLE, "+s.adapter+"))";
+    log("Trying a direct grantRole (works only if this wallet holds DEFAULT_ADMIN_ROLE)…");
+    const w=new ethers.Contract(wattAddr, ROLE_ABI, signer);
+    const tx=await w.grantRole(MINTER_ROLE, s.adapter, ov(120000n));
+    log("grantRole tx "+tx.hash); await tx.wait();
+    s.minter=true; save(chainId,s); log("✓ Adapter now has MINTER_ROLE on "+CFG[chainId].name); paintChains();
+  }catch(e){
+    const m=e?.shortMessage||e?.reason||e?.message||e;
+    log("✖ direct grant failed: "+m);
+    log("→ This wallet isn't the WATT admin. Submit the to/data shown above through your WATT multisig, then click Grant again to confirm.");
+  }
   $("#minter").disabled=false;
 }
 
