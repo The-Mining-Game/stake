@@ -139,17 +139,22 @@ let provider, signer, addr, chainId=137;
 const $=id=>document.getElementById(id), cur=()=>CFG[chainId];
 let _rp={}; const rc=(a,abi)=>new ethers.Contract(a,abi,(_rp[chainId]||=new ethers.JsonRpcProvider(cur().rpc)));
 const c=(a,abi,rw)=>rw?new ethers.Contract(a,abi,signer):rc(a,abi);
+// Force LEGACY (type-0) gas so ethers never calls the wallet's flaky fee-data
+// (the "could not coalesce error" on custom chains). gasPrice cached per chain.
+let _gp={};
+async function loadGasPrice(){ try{ _gp[chainId]=(await (_rp[chainId]||=new ethers.JsonRpcProvider(cur().rpc)).getFeeData()).gasPrice; }catch(e){} }
+const ov=(gasLimit)=> _gp[chainId] ? {gasLimit,gasPrice:_gp[chainId],type:0} : {gasLimit};
 const fmt=(w,dp=2)=>{try{const n=Number(ethers.formatEther(w));return n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString(undefined,{maximumFractionDigits:dp});}catch{return "0";}};
 function toast(m,k){const t=$("toast");t.textContent=m;t.className="toast "+(k||"");t.style.display="block";clearTimeout(t._h);t._h=setTimeout(()=>t.style.display="none",9000);}
 async function tx(label,p,ok){try{toast("Confirm in your wallet…");const t=await p;toast("Pending "+(t.hash||"").slice(0,12));await t.wait();toast(ok||"Done ✓","ok");refreshAll();return true;}catch(e){toast(label+" failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,110),"err");return false;}}
-async function ensureAllowance(token,spender,amt){const t=c(token,ABI.erc20,true);const al=await rc(token,ABI.erc20).allowance(addr,spender);if(al<amt){toast("Approve WATT…");const a=await t.approve(spender,ethers.MaxUint256,{gasLimit:90000n});await a.wait();}}
+async function ensureAllowance(token,spender,amt){const t=c(token,ABI.erc20,true);const al=await rc(token,ABI.erc20).allowance(addr,spender);if(al<amt){toast("Approve WATT…");const a=await t.approve(spender,ethers.MaxUint256,ov(90000n));await a.wait();}}
 function fillTargets(){ const s=$("pTarget"); s.innerHTML=TARGETS.map(t=>`<option value="${t.id}">${t.id} · ${t.sym}</option>`).join(''); }
 async function connect(){ if(!window.ethereum) return toast("Install MetaMask/Rabby","err");
   provider=new ethers.BrowserProvider(window.ethereum); await provider.send("eth_requestAccounts",[]);
   signer=await provider.getSigner(); addr=await signer.getAddress(); chainId=Number((await provider.getNetwork()).chainId);
   if(!CFG[chainId]) await switchNet(137); $("net").value=String(chainId);
   $("connect").textContent=addr.slice(0,6)+"…"+addr.slice(-4);
-  window.ethereum.on?.("chainChanged",()=>location.reload()); refreshAll(); }
+  window.ethereum.on?.("chainChanged",()=>location.reload()); await loadGasPrice(); refreshAll(); }
 async function switchNet(id){ try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CFG[id].hex}]});}catch(e){toast("Switch network in wallet","err");}
   chainId=id; if(window.ethereum){provider=new ethers.BrowserProvider(window.ethereum);signer=await provider.getSigner();} refreshAll(); }
 async function renderPools(){
@@ -171,7 +176,7 @@ async function renderHost(){
 }
 function renderTargets(){ const box=$("targets"); box.innerHTML=TARGETS.map(t=>`<div class="row"><div class="field"><label>${t.sym} payout address</label><input id="pa${t.id}" placeholder="${t.sym} address"></div><button class="ghost" data-pa="${t.id}">Set</button></div>`).join('');
   box.querySelectorAll('[data-pa]').forEach(b=>b.onclick=()=>{ if(!signer) return toast("Connect first","err"); const v=$("pa"+b.dataset.pa).value.trim(); if(!v) return toast("Enter an address","err");
-    tx("Set payout",c(cur().hub,ABI.hub,true).setPayoutAddress(Number(b.dataset.pa),v,{gasLimit:120000n}),"Payout address set ✓"); }); }
+    tx("Set payout",c(cur().hub,ABI.hub,true).setPayoutAddress(Number(b.dataset.pa),v,ov(120000n)),"Payout address set ✓"); }); }
 async function renderDrip(){ try{ const h=await (_rp[chainId]||=new ethers.JsonRpcProvider(cur().rpc)).getBlockNumber();
   if(chainId===2330){ $("altHeight").textContent=h.toLocaleString(); const left=Number(POS_ACTIVATE)-h; $("altToPos").textContent=left>0?left.toLocaleString():"PoS ACTIVE"; }
   else { $("altHeight").textContent="(switch to Altcoinchain)"; $("altToPos").textContent="—"; } }catch(e){} }
@@ -195,35 +200,35 @@ async function renderRigs(){
     boxA.innerHTML=a; boxE.innerHTML=e;
     boxA.querySelectorAll('[data-loadmine]').forEach(b=>b.onclick=()=>{ $("mRig").value=b.dataset.loadmine; toast("Rig #"+b.dataset.loadmine+" loaded — set pool + WATT"); });
     boxE.querySelectorAll('[data-loadearn]').forEach(b=>b.onclick=()=>{ $("eRig").value=b.dataset.loadearn; $("btnPending").click(); });
-    boxE.querySelectorAll('[data-claim]').forEach(b=>b.onclick=()=>{ if(!signer) return toast("Connect first","err"); tx("Claim",c(cur().engine,ABI.engine,true).claim(cur().rigNft,BigInt(b.dataset.claim),{gasLimit:300000n}),"Claimed ✓"); });
+    boxE.querySelectorAll('[data-claim]').forEach(b=>b.onclick=()=>{ if(!signer) return toast("Connect first","err"); tx("Claim",c(cur().engine,ABI.engine,true).claim(cur().rigNft,BigInt(b.dataset.claim),ov(300000n)),"Claimed ✓"); });
   }catch(e){ /* rig read hiccup */ }
 }
-async function refreshAll(){ renderPools(); if(addr){ try{ $("wattbal").textContent="WATT "+fmt(await rc(cur().watt,ABI.erc20).balanceOf(addr)); }catch{} renderHost(); renderRigs(); } renderDrip(); }
+async function refreshAll(){ loadGasPrice(); renderPools(); if(addr){ try{ $("wattbal").textContent="WATT "+fmt(await rc(cur().watt,ABI.erc20).balanceOf(addr)); }catch{} renderHost(); renderRigs(); } renderDrip(); }
 // actions
 $("btnRegister").onclick=async()=>{ if(!signer) return toast("Connect first","err");
   const name=$("hName").value.trim(), strat=$("hStratum").value.trim()||"stratum+tcp://pool:3333", rpc=$("hRpc").value.trim()||cur().rpc, p2p=$("hP2p").value.trim()||"node:30303", fee=Math.round((+$("hFee").value||2));
   if(!name) return toast("Enter a pool name","err");
   try{ const req=await rc(cur().registry,ABI.registry).requiredStake(); await ensureAllowance(cur().watt,cur().registry,req);
-    tx("Register",c(cur().registry,ABI.registry,true).registerPoolWithNode(name,name,strat,rpc,p2p,fee,0,[0],{gasLimit:600000n}),"Registered as host ✓ (100k WATT locked)"); }catch(e){ toast("Register: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
+    tx("Register",c(cur().registry,ABI.registry,true).registerPoolWithNode(name,name,strat,rpc,p2p,fee,0,[0],ov(600000n)),"Registered as host ✓ (100k WATT locked)"); }catch(e){ toast("Register: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
 $("btnCreate").onclick=()=>{ if(!signer) return toast("Connect first","err");
   const name=$("pName").value.trim()||"My Pool", tgt=Number($("pTarget").value), ep=$("pEndpoint").value.trim()||cur().rpc, rf=Math.round(+$("pRewardFee").value||200), wc=Math.round(+$("pWattCut").value||0);
-  tx("Create pool",c(cur().engine,ABI.engine,true).createPool(tgt,ANY_ALGO,rf,wc,name,ep,{gasLimit:500000n}),"Pool created ✓ — see Browse"); };
+  tx("Create pool",c(cur().engine,ABI.engine,true).createPool(tgt,ANY_ALGO,rf,wc,name,ep,ov(500000n)),"Pool created ✓ — see Browse"); };
 $("btnStart").onclick=async()=>{ if(!signer) return toast("Connect first","err");
   const rig=$("mRig").value, pool=$("mPool").value, w=$("mWatt").value; if(rig===""||pool===""||!w) return toast("Fill rig id, pool id, WATT","err");
   const amt=ethers.parseEther(w);
-  try{ const ok=await rc(cur().rigNft,ABI.rig).isApprovedForAll(addr,cur().engine); if(!ok){ toast("Approve rigs…"); const a=await c(cur().rigNft,ABI.rig,true).setApprovalForAll(cur().engine,true,{gasLimit:80000n}); await a.wait(); }
+  try{ const ok=await rc(cur().rigNft,ABI.rig).isApprovedForAll(addr,cur().engine); if(!ok){ toast("Approve rigs…"); const a=await c(cur().rigNft,ABI.rig,true).setApprovalForAll(cur().engine,true,ov(80000n)); await a.wait(); }
     await ensureAllowance(cur().watt,cur().engine,amt);
-    tx("Start mining",c(cur().engine,ABI.engine,true).startMining(cur().rigNft,BigInt(rig),amt,BigInt(pool),{gasLimit:400000n}),"Rig pointed at pool ✓"); }catch(e){ toast("Start: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
+    tx("Start mining",c(cur().engine,ABI.engine,true).startMining(cur().rigNft,BigInt(rig),amt,BigInt(pool),ov(400000n)),"Rig pointed at pool ✓"); }catch(e){ toast("Start: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
 $("btnPending").onclick=async()=>{ const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
   try{ const p=await rc(cur().engine,ABI.engine).pendingRewards(cur().rigNft,BigInt(rig)); $("ePending").textContent=fmt(p,4)+" pending"; }catch(e){ toast("No data for that rig","err"); } };
 $("btnClaim").onclick=()=>{ if(!signer) return toast("Connect first","err"); const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
-  tx("Claim",c(cur().engine,ABI.engine,true).claim(cur().rigNft,BigInt(rig),{gasLimit:300000n}),"Claimed ✓"); };
+  tx("Claim",c(cur().engine,ABI.engine,true).claim(cur().rigNft,BigInt(rig),ov(300000n)),"Claimed ✓"); };
 $("btnStop").onclick=()=>{ if(!signer) return toast("Connect first","err"); const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
-  tx("Stop",c(cur().engine,ABI.engine,true).stopMining(cur().rigNft,BigInt(rig),{gasLimit:300000n}),"Stopped mining ✓"); };
+  tx("Stop",c(cur().engine,ABI.engine,true).stopMining(cur().rigNft,BigInt(rig),ov(300000n)),"Stopped mining ✓"); };
 $("btnFund").onclick=async()=>{ if(!signer) return toast("Connect first","err"); if(chainId!==2330) return toast("Switch to Altcoinchain to fund the ALT drip","err");
   const amt=$("dAmt").value; if(!amt) return toast("Enter ALT amount","err");
   // Fund the hub's payout reserve for ALT (targetId 0) by sending native ALT to the hub.
-  tx("Fund",signer.sendTransaction({to:cur().hub,value:ethers.parseEther(amt),gasLimit:60000n}),"ALT drip funded ✓ — operator distributes 1 ALT/block"); };
+  tx("Fund",signer.sendTransaction(Object.assign({to:cur().hub,value:ethers.parseEther(amt)},ov(60000n))),"ALT drip funded ✓ — operator distributes 1 ALT/block"); };
 // tabs + init
 $("tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return; document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
   ["browse","create","mine","earn","drip"].forEach(p=>$("pane-"+p).style.display=p===t.dataset.t?"block":"none"); });
