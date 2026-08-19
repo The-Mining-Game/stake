@@ -1,0 +1,55 @@
+<!doctype html><meta charset="utf-8"><title>thumbgen</title>
+<style>body{margin:0;background:transparent}.cell{width:512px;height:512px}</style>
+<script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}</script>
+<div id="out"></div>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+const BSV_ORIGIN = { "pc.glb":"29ef03b0e0aabb4c9adef4c0c7f1f37aa11567e554366d49bc90e369cf4c7994_0",
+  "cpu.glb":"366ff5a850a655727b8a28178556a86e19f06a81da34a35d5c03b48c885a16a8_0",
+  "gpu_tx120.glb":"9db877b8694330ab9cd56a93f14680a1a1cee0b0df0b526865fde2ebca9d31a7_0",
+  "gpu_gp50.glb":"3a44c183f158d2627133fea83fa98a9522c4ee5b7def5ae6d9a7c9e011903054_0",
+  "gen2.glb":"109a1bba976772a4c40100bd2010cef8dd3fce7681bbc95d2a23eea3755606f5_0" };
+const CATALOG = [
+  { id:1,  key:"pc.glb" }, { id:3, key:"cpu.glb" }, { id:4, key:"gpu_tx120.glb" },
+  { id:5,  key:"gpu_gp50.glb" },
+  { id:14, scene:"14_Mining_Rig_Frame" }, { id:9, scene:"9_XL_190_CPU" },
+  { id:8,  scene:"8_TX_190", rot:[Math.PI,0,0] }, { id:12, scene:"10_XXL_270_CPU" },
+  { id:10, scene:"10_GP_720_GPU", rot:[Math.PI,0,0] }, { id:11, scene:"11_GPX_880_a" },
+  { id:13, scene:"13_Bit_Hammer_ASIC" }, { id:19, scene:"19_Server_Tower" },
+  { id:17, scene:"17_Red_Mouse" }, { id:18, scene:"18_RGB_Keyboard" }, { id:23, scene:"23_LC_23_Monitor" },
+];
+const url = k => "https://ordinals.gorillapool.io/content/" + BSV_ORIGIN[k];
+const gltf = new GLTFLoader(); gltf.setMeshoptDecoder(MeshoptDecoder);
+let bundleP;
+const out = document.getElementById("out");
+for (const it of CATALOG) {
+  let obj;
+  try {
+    if (it.scene) { const g = await (bundleP ||= gltf.loadAsync(url("gen2.glb")));
+      const sc = g.scenes.find(s => s.name === it.scene); if(!sc) throw new Error("no scene "+it.scene);
+      obj = sc.clone(true); }
+    else { obj = (await gltf.loadAsync(url(it.key))).scene; }
+  } catch(e) { console.log("FAIL "+it.id+" "+e.message); continue; }
+  const cell = document.createElement("div"); cell.className="cell"; cell.dataset.id=it.id; out.appendChild(cell);
+  // same framing as makeViewer(), but fixed 3/4 pose (no autorotate) for a stable capture
+  const r = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
+  r.setPixelRatio(2); r.setSize(512,512);
+  r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.35;
+  cell.appendChild(r.domElement);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xffffff,0x223,2.2));
+  const d=new THREE.DirectionalLight(0xffffff,2.6); d.position.set(2,3,4); scene.add(d);
+  const d2=new THREE.DirectionalLight(0x99bbff,1.2); d2.position.set(-3,1,-2); scene.add(d2);
+  const cam = new THREE.PerspectiveCamera(38,1,0.01,100);
+  const box=new THREE.Box3().setFromObject(obj), size=new THREE.Vector3(), ctr=new THREE.Vector3();
+  box.getSize(size); box.getCenter(ctr); obj.position.sub(ctr);
+  const holder=new THREE.Group(); if(it.rot) holder.rotation.set(it.rot[0]||0,it.rot[1]||0,it.rot[2]||0);
+  holder.add(obj); holder.rotation.y += 0.6; scene.add(holder);
+  const rad=Math.max(size.x,size.y,size.z)||1;
+  cam.position.set(rad*1.7,rad*1.2,rad*2.0); cam.lookAt(0,0,0);
+  r.render(scene,cam);
+}
+window.__done = true;
+</script>
