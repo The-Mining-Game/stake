@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Mining Game — Stake</title>
 <script type="importmap">{"imports":{
-  "three":"https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
-  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+  "three":"./vendor/three/three.module.js",
+  "three/addons/":"./vendor/three/addons/"
 }}</script>
 <style>
   :root{ --bg:#0c0a18; --panel:#151027; --panel2:#1c1636; --ink:#ece9fb; --dim:#a49dc4;
@@ -223,25 +223,39 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { ethers } from "./vendor/ethers.min.js";
 
 // Live, interactive 3D card viewers: each model auto-rotates and can be dragged
 // to spin on all axes. One shared render loop drives every viewer; only the ones
 // visible in the viewport are rendered so a full grid stays smooth.
-const _gltf = new GLTFLoader(); _gltf.setMeshoptDecoder(MeshoptDecoder);
-let _bundle;
-async function loadBundle(){ if(!_bundle) _bundle = await _gltf.loadAsync(assetUrl("gen2.glb")); return _bundle; }
+// three.js is loaded LAZILY (only when a 3D card is actually built) so that a
+// missing/blocked/WebGL-less 3D stack can never stop the wallet UI from wiring up.
+let THREE, OrbitControls, _gltf, _threeP;
+function load3d(){
+  return _threeP ||= (async () => {
+    const [t, gl, mo, oc] = await Promise.all([
+      import("three"),
+      import("three/addons/loaders/GLTFLoader.js"),
+      import("three/addons/libs/meshopt_decoder.module.js"),
+      import("three/addons/controls/OrbitControls.js"),
+    ]);
+    THREE = t; OrbitControls = oc.OrbitControls;
+    _gltf = new gl.GLTFLoader(); _gltf.setMeshoptDecoder(mo.MeshoptDecoder);
+  })();
+}
+let _bundleP;
+function loadBundle(){ return _bundleP ||= _gltf.loadAsync(assetUrl("gen2.glb")); }
 async function getObject(item){
+  await load3d();
   if(item.scene){ const g = await loadBundle(); const sc = g.scenes.find(s=>s.name===item.scene);
     if(!sc) throw new Error("no scene "+item.scene); return sc.clone(true); }
   const g = await _gltf.loadAsync(assetUrl(item.key)); return g.scene;
 }
 const _viewers = [];
+function webglOK(){ try{ const c = document.createElement("canvas");
+  return !!(c.getContext("webgl2") || c.getContext("webgl")); }catch(e){ return false; } }
 function makeViewer(container, obj, orient){
+  if(!THREE) throw new Error("3D not ready");
   const r = new THREE.WebGLRenderer({ antialias:true, alpha:true });
   r.setPixelRatio(Math.min(devicePixelRatio,2));
   const w = container.clientWidth||200, h = container.clientHeight||200;
@@ -282,6 +296,7 @@ function startLoop(){ if(_looping) return; _looping=true; requestAnimationFrame(
 
 const CFG = {
   137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com",
+    rpcs:["https://polygon-bor-rpc.publicnode.com","https://polygon.drpc.org","https://1rpc.io/matic"],
     items:"0x0CDbf4926a8EdFFaa803B96f8fa90B065DE19Eb2", shop:"0xeE6B67c3993884F1b693A4a66e952Bb563463131",
     mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
     watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f", oldWatt:"0xE960d5076cd3169C343Ee287A2c3380A222e5839",
@@ -289,6 +304,7 @@ const CFG = {
     wattPool:"0x7E8FC9d7D7588F410E1399aC690F901268B08a8d",
     migrator:"0x97BcC99ff34FA2cde929c97074011E8929F59679" },
   2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://rpc.wattxchange.app",
+    rpcs:["https://rpc.wattxchange.app"],
     items:"0x851fd0205348783444Fc9EDe99Ca2321681EC99b", shop:"0x92809C4a46b4D0F11a48BE21fF13202EA56DcEB1",
     mg:"0x856f59F1729f6e107EbCD75d21c64AB897c5681f", vault:"0x72A716F62aCfF960f6F097B4c7909B2368eD3acA",
     watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D", oldWatt:"0x6645143e49B3a15d8F205658903a55E520444698",
@@ -358,7 +374,9 @@ async function renderGallery(){
   // build each live viewer sequentially (loading is serialized; rendering is shared)
   for(const j of jobs){
     try{ const obj = await getObject(j.it); makeViewer(j.frame, obj, j.it.rot); }
-    catch(e){ const ph = j.frame.querySelector(".ph"); if(ph) ph.textContent = "model on-chain"; }
+    catch(e){ console.warn("3D card failed:", j.it.name, e && e.message);
+      const ph = j.frame.querySelector(".ph");
+      if(ph) ph.textContent = webglOK() ? "model on-chain" : "3D off — enable hardware acceleration"; }
   }
 }
 const $ = (id) => document.getElementById(id);
@@ -381,8 +399,23 @@ function toast(msg, kind){ const t=$("toast"); t.textContent=msg; t.className="t
 // what blanked the staking counter), and cause ethers "could not coalesce error" on
 // reads/gas-estimation. So ALL view calls go through the chain's own public RPC, and
 // writes carry explicit gas limits so ethers never calls the wallet's eth_estimateGas.
-let _rp={};
-const rc = (a,abi) => new ethers.Contract(a, abi, (_rp[chainId] ||= new ethers.JsonRpcProvider(cur().rpc)));
+let _rp={}, _rpP={};
+// Read endpoints are third-party for some chains, so a blocked/dead one must never
+// leave the page blank: try each in turn, then fall back to the connected wallet's
+// own RPC (an extension request, which nothing on the page side can block).
+async function ensureRpc(id){
+  if(_rp[id]) return _rp[id];
+  return _rpP[id] ||= (async () => {
+    for(const url of (CFG[id].rpcs || [CFG[id].rpc])){
+      try{ const p = new ethers.JsonRpcProvider(url, id); await p.getBlockNumber(); return _rp[id] = p; }
+      catch(e){ console.warn("RPC unreachable:", url, e && e.message); }
+    }
+    if(window.ethereum){ console.warn("all public RPCs unreachable — reading through the wallet");
+      return _rp[id] = new ethers.BrowserProvider(window.ethereum); }
+    throw new Error("no reachable RPC for chain "+id);
+  })().finally(()=>{ _rpP[id]=null; });
+}
+const rc = (a,abi) => new ethers.Contract(a, abi, (_rp[chainId] ||= new ethers.JsonRpcProvider(cur().rpc, chainId)));
 const c = (a,abi,rw) => rw ? new ethers.Contract(a, abi, signer) : rc(a,abi);
 const GAS = { approve:90000n, approveAll:70000n, migrateWatt:220000n, stakeWatt:220000n, migrateNft:260000n };
 function cur(){ return CFG[chainId]; }
@@ -408,6 +441,7 @@ async function tx(promise, okMsg){ try{ toast("Confirm in your wallet…"); cons
 
 async function refreshAll(){
   if(!addr) return;
+  try{ await ensureRpc(chainId); }catch(e){ toast("Can't reach a "+cur().name+" node — reads unavailable","err"); }
   try{
     const w = c(cur().watt, ABI.erc20);
     $("wattbal").textContent = "WATT " + fmt(await w.balanceOf(addr));
@@ -633,8 +667,9 @@ async function buyItem(it){
   }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,90),"err"); }
 }
 
-// read-only provider before connect
-provider = new ethers.JsonRpcProvider(CFG[137].rpc);
+// read-only provider before connect (endpoint health-checked in the background)
+provider = new ethers.JsonRpcProvider(CFG[137].rpc, 137);
+ensureRpc(137).then(p => { provider = p; }).catch(e => console.warn(e));
 </script>
 </body>
 </html>
