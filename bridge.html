@@ -171,6 +171,14 @@ const ORDER = [2330, 137];
 const OFT_ABI = [
   "function quoteSend((uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd) sendParam, bool payInLzToken) view returns ((uint256 nativeFee,uint256 lzTokenFee))",
   "function send((uint32 dstEid,bytes32 to,uint256 amountLD,uint256 minAmountLD,bytes extraOptions,bytes composeMsg,bytes oftCmd) sendParam,(uint256 nativeFee,uint256 lzTokenFee) fee,address refundAddress) payable returns ((bytes32 guid,uint64 nonce,(uint256 nativeFee,uint256 lzTokenFee) fee),(uint256 amountSentLD,uint256 amountReceivedLD))",
+  // the OFT works in shared decimals (6), so amounts are quantised to decimalConversionRate
+  "function decimalConversionRate() view returns (uint256)",
+  // without these, a revert here just reads "unknown custom error"
+  "error SlippageExceeded(uint256 amountSentLD, uint256 amountReceivedLD)",
+  "error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed)",
+  "error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed)",
+  "error InvalidLocalDecimals()",
+  "error NoPeer(uint32 eid)",
 ];
 const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
@@ -264,6 +272,19 @@ async function switchChain(id){
 }
 
 /* ---- the bridge action ---- */
+// The OFT carries amounts in shared decimals (6): anything finer is dust that
+// _debitView() silently drops. Sending a dusty amount with minAmountLD == amountLD
+// reverts with SlippageExceeded — which is exactly what a MAX click produced, since
+// a real balance almost never lands on a clean 6-decimal boundary. So quantise first.
+const _rate = {};
+async function convRate(id){
+  if(_rate[id]) return _rate[id];
+  try{ _rate[id] = await new ethers.Contract(CFG[id].oft, OFT_ABI, rp(id)).decimalConversionRate(); }
+  catch(e){ _rate[id] = 10n ** 12n; }        // 18 local - 6 shared
+  return _rate[id];
+}
+async function trimDust(id, wei){ const r = await convRate(id); return (wei / r) * r; }
+
 function sendParam(amtWei, recip){
   return {
     dstEid: to,
@@ -279,7 +300,7 @@ function step(name,state){ const el=document.querySelector(`.steps li[data-s="${
 
 async function doBridge(){
   const v=parseFloat($("#amt").value||"0")||0; if(v<=0) return;
-  const amtWei=ethers.parseUnits(String(v),18);
+  let amtWei=ethers.parseUnits(String(v),18);
   const deployed = live(from)&&live(to);
   $("#steps").hidden=false; $("#log").textContent="";
   const c=$("#cta"); c.disabled=true;
@@ -299,6 +320,16 @@ async function doBridge(){
     }
 
     if(chainId!==from){ await switchChain(from); return; }
+
+    // drop sub-6-decimal dust so amountLD == amountReceivedLD (no SlippageExceeded)
+    const sendWei = await trimDust(from, amtWei);
+    if(sendWei !== amtWei){
+      if(sendWei === 0n){ log("✖ Amount too small to bridge — the minimum is 0.000001 WATT."); c.disabled=false; return; }
+      log(`Rounded ${fmt(amtWei,18,18)} → ${fmt(sendWei,18,6)} WATT (the bridge carries 6 decimals).`);
+      $("#rSend").textContent = fmt(sendWei,18,6); $("#rRecv").textContent = fmt(sendWei,18,6);
+    }
+    amtWei = sendWei;
+
     const wattW=new ethers.Contract(CFG[from].watt, ERC20_ABI, signer);
     const oftW =new ethers.Contract(CFG[from].oft,  OFT_ABI,   signer);
     const oftR =new ethers.Contract(CFG[from].oft,  OFT_ABI,   rp(from));
@@ -328,8 +359,16 @@ async function doBridge(){
     log(`Waiting for the DVN worker to verify (${CFG[from].conf} confs) and mint on ${CFG[to].name}…`);
     watchMint(amtWei);
   }catch(e){
-    const msg=e?.shortMessage||e?.reason||e?.message||String(e);
+    let msg=e?.shortMessage||e?.reason||e?.message||String(e);
+    // ethers only auto-decodes errors it knows; decode against the OFT ABI so a
+    // revert reads as SlippageExceeded(...) rather than "unknown custom error"
+    const data=e?.data||e?.info?.error?.data;
+    if(typeof data==="string" && data.length>=10){
+      try{ const pe=new ethers.Interface(OFT_ABI).parseError(data);
+        if(pe) msg=pe.name+"("+pe.args.map(a=>String(a)).join(", ")+")"; }catch(_){}
+    }
     log("✖ "+msg);
+    if(/SlippageExceeded/.test(msg)) log("Tip: the bridge carries 6 decimals — round the amount to 6 places (or use MAX).");
     if(/coalesce/i.test(msg)) log("Tip: set your wallet's "+CFG[from].name+" RPC to "+CFG[from].rpc);
     c.disabled=false;
   }
@@ -358,7 +397,10 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 /* ---- events ---- */
 $("#flip").onclick=()=>{ [from,to]=[to,from]; loadGas(from); paintDir(); updateCta(); };
 $("#amt").oninput=recalc;
-$("#max").onclick=()=>{ const raw=$("#bal").dataset.raw; if(raw){ $("#amt").value=ethers.formatUnits(raw,18); recalc(); } };
+$("#max").onclick=async()=>{ const raw=$("#bal").dataset.raw; if(!raw) return;
+  // MAX must land on a 6-decimal boundary, or the OFT rejects it as slippage
+  let wei=BigInt(raw); try{ wei = await trimDust(from, wei); }catch(e){}
+  $("#amt").value=ethers.formatUnits(wei,18); recalc(); };
 $("#cta").onclick=async ()=>{
   if(!account) return connect();
   if(chainId!==from) return switchChain(from);
