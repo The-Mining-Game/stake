@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WATT v1 → v2 Migration — The Mining Game</title>
+<style>
+  :root{
+    --bg:#0a0f0c; --panel:#0f1712; --panel2:#12211a; --line:#1d3327;
+    --ink:#e8ffe9; --muted:#8fb69c; --dim:#5f8570;
+    --acc:#39ff88; --acc2:#00d15a; --warn:#ffcc55; --bad:#ff5d6c;
+    --shadow:0 18px 50px rgba(0,0,0,.55);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-text-size-adjust:100%}
+  body{background:
+     radial-gradient(1100px 480px at 82% -8%, rgba(57,255,136,.10), transparent 60%),
+     radial-gradient(900px 420px at 8% 108%, rgba(0,209,90,.07), transparent 60%),
+     var(--bg);min-height:100vh}
+  a{color:var(--acc)}
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 60px}
+  header{display:flex;align-items:center;gap:12px;padding:8px 2px 20px}
+  header .logos{display:flex;align-items:center;gap:10px;min-width:0}
+  header img{height:34px;width:auto;image-rendering:pixelated;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  header .watt{height:30px;image-rendering:auto}
+  header .sub{margin-left:auto;font:600 11px/1 var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase;text-align:right}
+  nav{display:flex;gap:14px;font:600 13px var(--sans);padding:0 2px 14px}
+  nav a{color:var(--muted);text-decoration:none}
+  nav a:hover{color:var(--acc)}
+  .card{background:linear-gradient(180deg,var(--panel),#0b120e);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+  h1{font-size:19px;margin:0 0 2px;letter-spacing:.2px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.5}
+  .banner{border:1px solid;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin:0 0 16px;display:flex;gap:9px;align-items:flex-start}
+  .banner.warn{border-color:rgba(255,204,85,.4);background:rgba(255,204,85,.07);color:#ffe9b0}
+  .banner.ok{border-color:rgba(57,255,136,.35);background:rgba(57,255,136,.06);color:#bcffd6}
+  .banner b{color:#fff}
+  .leg{display:grid;grid-template-columns:1fr 44px 1fr;gap:8px;align-items:stretch;margin:0 0 12px}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .chip .k{font:600 10px/1 var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  .chip .v{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 8px currentColor}
+  .c-alt{color:#8f7bff}.c-pol{color:#a06bff}.c-wtx{color:var(--acc)}
+  .flip{align-self:center;background:var(--panel2);border:1px solid var(--line);color:var(--acc);border-radius:12px;height:44px;font-size:18px;cursor:pointer;transition:.15s}
+  .flip:hover{background:#173225;transform:rotate(180deg)}
+  .amt{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 6px}
+  .amt .row{display:flex;align-items:center;gap:8px}
+  .amt input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:800 26px/1.1 var(--sans)}
+  .amt .tok{font-weight:800;color:var(--acc);font-size:15px}
+  .amt .max{background:rgba(57,255,136,.12);color:var(--acc);border:1px solid rgba(57,255,136,.3);border-radius:8px;padding:5px 9px;font:700 11px var(--mono);cursor:pointer}
+  .bal{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 3px;margin-bottom:14px}
+  .bal b{color:var(--ink)}
+  .route{border:1px dashed var(--line);border-radius:12px;padding:11px 13px;font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 16px}
+  .route .r{display:flex;justify-content:space-between;gap:12px}
+  .route .r span:last-child{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+  .route .path{color:var(--dim);font:600 11px var(--mono);letter-spacing:.03em;border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+  button.act{width:100%;border:0;border-radius:14px;padding:15px;font:800 15px var(--sans);cursor:pointer;transition:.15s;margin-top:4px}
+  button.act.primary{background:linear-gradient(180deg,var(--acc),var(--acc2));color:#04170c;box-shadow:0 10px 26px rgba(57,255,136,.25)}
+  button.act.primary:hover{filter:brightness(1.06)}
+  button.act.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  button.act:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;filter:none}
+  .steps{margin:14px 0 0;padding:0;list-style:none;font-size:12.5px}
+  .steps li{display:flex;gap:9px;align-items:center;padding:5px 0;color:var(--dim)}
+  .steps li.on{color:var(--ink)}
+  .steps li.done{color:var(--acc)}
+  .steps .n{width:20px;height:20px;border-radius:50%;border:1px solid currentColor;display:grid;place-items:center;font:700 11px var(--mono);flex:none}
+  .log{margin-top:14px;background:#060b08;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:12px/1.6 var(--mono);color:var(--muted);max-height:150px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+  .log:empty{display:none}
+  .foot{color:var(--dim);font-size:11px;text-align:center;margin-top:22px;line-height:1.6}
+  .conn{margin-left:auto}
+  @media (max-width:420px){
+    .wrap{padding:14px 12px 48px}
+    .amt input{font-size:22px}
+    header .sub{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logos">
+      <img class="mg" src="https://stake.mining-game.wattxchange.app/mg-logo.png" alt="The Mining Game"
+           onerror="this.style.display='none'">
+      <img class="watt" src="https://stake.mining-game.wattxchange.app/watt.png" alt="WATT"
+           onerror="this.style.display='none'">
+    </div>
+    <div class="sub">WATT<br>v1 → v2</div>
+  </header>
+  <nav>
+    <a href="index.html">◂ Stake</a>
+    <a href="pools.html">⛏ Pools</a>
+    <a href="bridge.html">🌉 Bridge</a>
+    <a href="#" style="color:var(--acc)">♻ Migrate</a>
+  </nav>
+
+  <div class="card">
+    <h1>Migrate legacy WATT to WATT v2</h1>
+    <p class="lead">Legacy <b>WATT v1</b> is retired. This burns your v1 to
+      <span class="mono">0x…dEaD</span> and mints <b>WATT v2</b> back to you <b>1:1</b>, in one
+      transaction, on the same chain. The migrator holds the mint role on v2, so it can never
+      run out.</p>
+
+    <div id="banner"></div>
+
+    <div class="leg">
+      <div class="chip">
+        <div class="k">Chain</div>
+        <div class="v"><span id="chDot" class="dot c-alt"></span><span id="chName">Altcoinchain</span></div>
+      </div>
+      <button class="flip" id="flip" title="Switch chain">⇅</button>
+      <div class="chip">
+        <div class="k">Direction</div>
+        <div class="v">v1 → v2</div>
+      </div>
+    </div>
+
+    <div class="amt">
+      <div class="row">
+        <input id="amt" inputmode="decimal" placeholder="0.0" autocomplete="off">
+        <span class="tok">WATT v1</span>
+        <span class="max" id="max">MAX</span>
+      </div>
+    </div>
+    <div class="bal"><span>Your WATT v1</span><b><span id="balV1">—</span></b></div>
+    <div class="bal"><span>Your WATT v2</span><b><span id="balV2">—</span></b></div>
+
+    <div class="route">
+      <div class="r"><span>You burn</span><span><span id="rSend">0</span> WATT v1</span></div>
+      <div class="r"><span>You receive</span><span><span id="rRecv">0</span> WATT v2</span></div>
+      <div class="r"><span>Rate</span><span>1 : 1 — fixed</span></div>
+      <div class="path" id="rPath">BURN v1 → 0x…dEaD  ·  MINT v2 to you</div>
+    </div>
+
+    <p class="lead" style="color:var(--warn)"><b>One-way.</b> There is no v2 → v1 path. Migrated
+      WATT cannot be converted back.</p>
+
+    <button class="act" id="go">Connect wallet</button>
+    <pre id="log"></pre>
+  </div>
+</div>
+
+<script type="module">
+import { ethers } from "./vendor/ethers.min.js";
+
+// Every address below was read back off-chain from the migrator itself
+// (WattSwap.legacy() / WattSwap.wattV2()) before being written here.
+const CFG = {
+  2330: { name:"Altcoinchain", short:"ALT", hex:"0x91a", cls:"c-alt", sym:"ALT",
+          rpc:"https://rpc.wattxchange.app",
+          v1:"0x6645143e49B3a15d8F205658903a55E520444698",
+          v2:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D",
+          swap:"0xdFd07EBEEC3228D14b99f9f39EC71D884ABcbbF4" },
+  137:  { name:"Polygon", short:"POL", hex:"0x89", cls:"c-pol", sym:"POL",
+          rpc:"https://polygon-bor-rpc.publicnode.com",
+          v1:"0xE960d5076cd3169C343Ee287A2c3380A222e5839",
+          v2:"0x387693eCEC037C61943404F03c097d2ADA15ae3f",
+          swap:"0x90a0906a7e01a65f48bd35741681088E3FA6729c" },
+};
+
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+];
+const SWAP_ABI = [ "function migrate(uint256)" ];
+
+const $ = s => document.querySelector(s);
+const log = m => { const l=$("#log"); l.textContent += (l.textContent?"\n":"") + m; l.scrollTop=l.scrollHeight; };
+const fmt = (bn,p=4) => Number(ethers.formatUnits(bn,18)).toLocaleString(undefined,{maximumFractionDigits:p});
+
+let provider, signer, account, chainId, chain = 2330;
+let balV1 = 0n, allowance = 0n, busy = false;
+
+const _rp = {};
+const rp = id => (_rp[id] ||= new ethers.JsonRpcProvider(CFG[id].rpc));
+
+// Altcoinchain wants legacy (type-0) transactions; same pattern bridge.html uses.
+const _gp = {};
+async function loadGas(id){ try{ _gp[id]=(await rp(id).getFeeData()).gasPrice; }catch(e){} }
+const ov = (id,gasLimit)=> _gp[id] ? {gasLimit,gasPrice:_gp[id],type:0} : {gasLimit};
+
+function paintChain(){
+  const c = CFG[chain];
+  $("#chName").textContent = c.name;
+  $("#chDot").className = "dot " + c.cls;
+}
+
+async function refresh(){
+  if(!account) return;
+  const c = CFG[chain];
+  try{
+    const v1 = new ethers.Contract(c.v1, ERC20_ABI, rp(chain));
+    const v2 = new ethers.Contract(c.v2, ERC20_ABI, rp(chain));
+    [balV1, allowance] = await Promise.all([
+      v1.balanceOf(account), v1.allowance(account, c.swap),
+    ]);
+    $("#balV1").textContent = fmt(balV1);
+    $("#balV2").textContent = fmt(await v2.balanceOf(account));
+  }catch(e){ log("read failed: " + (e.shortMessage ?? e.message)); }
+  paintBtn();
+}
+
+function amtWei(){
+  const t = ($("#amt").value || "").trim();
+  if(!/^\d*\.?\d*$/.test(t) || t==="" || t===".") return 0n;
+  try{ return ethers.parseUnits(t,18); }catch(e){ return 0n; }
+}
+
+function paintBtn(){
+  const b = $("#go"); const a = amtWei();
+  $("#rSend").textContent = fmt(a); $("#rRecv").textContent = fmt(a);
+  if(busy) return;
+  if(!account){ b.textContent="Connect wallet"; b.disabled=false; b.className="act"; return; }
+  if(chainId!==chain){ b.textContent=`Switch wallet to ${CFG[chain].name}`; b.disabled=false; b.className="act ghost"; return; }
+  if(a===0n){ b.textContent="Enter an amount"; b.disabled=true; b.className="act"; return; }
+  if(a>balV1){ b.textContent="Not enough WATT v1"; b.disabled=true; b.className="act"; return; }
+  b.disabled=false; b.className="act";
+  b.textContent = allowance < a ? "Approve WATT v1" : "Migrate to WATT v2";
+}
+
+async function connect(){
+  if(!window.ethereum){ log("No wallet found. Install Rabby or MetaMask."); return; }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts",[]);
+  signer = await provider.getSigner();
+  account = await signer.getAddress();
+  chainId = Number((await provider.getNetwork()).chainId);
+  if(CFG[chainId]) chain = chainId;
+  paintChain();
+  log(`Connected ${account.slice(0,6)}…${account.slice(-4)} on chain ${chainId}`);
+  await loadGas(chain);
+  await refresh();
+}
+
+async function switchChain(id){
+  try{ await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:CFG[id].hex}]}); }
+  catch(e){
+    if(e.code===4902){ await window.ethereum.request({method:"wallet_addEthereumChain",params:[{
+      chainId:CFG[id].hex, chainName:CFG[id].name, rpcUrls:[CFG[id].rpc],
+      nativeCurrency:{name:CFG[id].sym,symbol:CFG[id].sym,decimals:18},
+    }]}); } else { log(e.shortMessage ?? e.message); }
+  }
+}
+
+async function act(){
+  if(!account) return connect();
+  if(chainId!==chain) return switchChain(chain);
+  const c = CFG[chain], a = amtWei();
+  if(a===0n || a>balV1) return;
+  busy = true; $("#go").disabled = true;
+  try{
+    if(allowance < a){
+      $("#go").textContent = "Approving…";
+      const v1 = new ethers.Contract(c.v1, ERC20_ABI, signer);
+      const tx = await v1.approve(c.swap, a, ov(chain,80000n));
+      log("approve " + tx.hash); await tx.wait();
+      log("approved"); allowance = a;
+    } else {
+      $("#go").textContent = "Migrating…";
+      const sw = new ethers.Contract(c.swap, SWAP_ABI, signer);
+      const tx = await sw.migrate(a, ov(chain,200000n));
+      log("migrate " + tx.hash); await tx.wait();
+      log(`migrated ${fmt(a)} WATT v1 → v2`);
+      $("#amt").value = "";
+    }
+    await refresh();
+  }catch(e){
+    log("failed: " + (e.shortMessage ?? e.reason ?? e.message));
+  }finally{ busy = false; paintBtn(); }
+}
+
+$("#go").addEventListener("click", act);
+$("#amt").addEventListener("input", paintBtn);
+$("#max").addEventListener("click", ()=>{ $("#amt").value = ethers.formatUnits(balV1,18); paintBtn(); });
+$("#flip").addEventListener("click", async ()=>{
+  chain = chain===2330 ? 137 : 2330;
+  paintChain(); await loadGas(chain);
+  if(account && chainId!==chain) await switchChain(chain);
+  await refresh();
+});
+if(window.ethereum){
+  window.ethereum.on?.("chainChanged", ()=>location.reload());
+  window.ethereum.on?.("accountsChanged", ()=>location.reload());
+}
+paintChain(); paintBtn();
+</script>
+</body>
+</html>
