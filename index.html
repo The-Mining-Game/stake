@@ -142,7 +142,7 @@
         <h2 style="font-size:15px;margin:0">Your components — stake to earn</h2>
         <div class="row" style="margin:0"><button class="ghost" id="selectAll">Select all</button><button id="stakeSelected">Stake selected</button></div>
       </div>
-      <p class="muted">Approve items once. Tick the components and set how many of each to stake (powered off), then Stake selected — or stake one at a time.</p>
+      <p class="muted">Tick the components and set how many of each to stake (powered off), then Stake selected — or stake one at a time. The first stake asks for a one-time approval so the staking contract can hold your components; “Approve items” does it up front if you prefer.</p>
       <div class="gallery" id="ownedGallery"><p class="muted" id="ownedEmpty">Connect your wallet to see your components.</p></div>
       <h2 style="margin-top:18px;font-size:15px">Staked positions</h2>
       <div class="list" id="positions"></div>
@@ -330,7 +330,10 @@ const CFG = {
 const ABI = {
   erc20:["function balanceOf(address) view returns (uint256)","function approve(address,uint256) returns (bool)","function allowance(address,address) view returns (uint256)","function decimals() view returns (uint8)"],
   erc1155:["function setApprovalForAll(address,bool)","function isApprovedForAll(address,address) view returns (bool)","function balanceOf(address,uint256) view returns (uint256)"],
-  mg:["function stake(uint256 id,uint256 amount,bool powered)","function unstake(uint256 idx)","function setPowered(uint256 idx,bool on)","function claimWatt()","function pendingWatt(address) view returns (uint256)","function positionCount(address) view returns (uint256)","function positions(address,uint256) view returns (uint256 id,uint256 amount,uint256 weight,uint256 rate,bool powered,bool active)","function acct(address) view returns (uint256 offWeight,uint256 onRate,uint256 fuel,uint256 pending,uint256 lastTs)","function emitRatePerWeight() view returns (uint256)"],
+  mg:["function stake(uint256 id,uint256 amount,bool powered)","function unstake(uint256 idx)","function setPowered(uint256 idx,bool on)","function claimWatt()","function pendingWatt(address) view returns (uint256)","function positionCount(address) view returns (uint256)","function positions(address,uint256) view returns (uint256 id,uint256 amount,uint256 weight,uint256 rate,bool powered,bool active)","function acct(address) view returns (uint256 offWeight,uint256 onRate,uint256 fuel,uint256 pending,uint256 lastTs)","function emitRatePerWeight() view returns (uint256)",
+    // OZ v5 custom errors — without these ethers reports a bare "unknown custom error"
+    "error ERC1155MissingApprovalForAll(address operator,address owner)",
+    "error ERC1155InsufficientBalance(address sender,uint256 balance,uint256 needed,uint256 tokenId)"],
   vault:["function deposit() payable","function depositToken(address,uint256)","function withdrawAll(address)","function balanceOf(address,address) view returns (uint256)"],
   migrator:["function migrate(uint256[] ids,uint256[] amounts)"],
   wattSwap:["function migrate(uint256 amount)"],
@@ -433,7 +436,7 @@ async function ensureRpc(id){
 }
 const rc = (a,abi) => new ethers.Contract(a, abi, (_rp[chainId] ||= new ethers.JsonRpcProvider(cur().rpc, chainId)));
 const c = (a,abi,rw) => rw ? new ethers.Contract(a, abi, signer) : rc(a,abi);
-const GAS = { approve:90000n, approveAll:70000n, migrateWatt:220000n, stakeWatt:220000n, migrateNft:260000n };
+const GAS = { approve:90000n, approveAll:70000n, migrateWatt:220000n, stakeWatt:220000n, migrateNft:260000n, stakeItem:500000n };
 function cur(){ return CFG[chainId]; }
 
 async function connect(){
@@ -452,8 +455,16 @@ async function switchNet(id){
   catch(e){ toast("Switch your wallet to "+CFG[id].name,"err"); }
   chainId=id; provider=new ethers.BrowserProvider(window.ethereum); signer=await provider.getSigner(); refreshAll();
 }
+// ethers puts the DECODED custom error in e.revert (when the ABI carries the error
+// fragment) but leaves shortMessage as "unknown custom error" — so read revert first.
+function errMsg(e, n){
+  const r = e && e.revert;
+  const s = r ? r.name + (r.args && r.args.length ? " ("+r.args.map(String).join(", ")+")" : "")
+              : ((e && (e.shortMessage || e.reason || e.message)) || "") + "";
+  return s.slice(0, n || 90);
+}
 async function tx(promise, okMsg){ try{ toast("Confirm in your wallet…"); const t=await promise; toast("Pending… "+t.hash.slice(0,12)); await t.wait(); toast(okMsg||"Done ✓","ok"); refreshAll(); }
-  catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message||"")+"").slice(0,90),"err"); } }
+  catch(e){ toast("Failed: "+errMsg(e),"err"); } }
 
 async function refreshAll(){
   if(!addr) return;
@@ -486,9 +497,22 @@ async function refreshAll(){
 // show the V3 components this wallet owns as 3D cards, each with a Stake button
 let _ownedBuilt = "";
 async function renderOwned(){
-  const items = new ethers.Contract(cur().items, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"], provider);
+  const items = rc(cur().items, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"]);
   const ids = CATALOG.map(it=>it.id);
-  let bals; try{ bals = await items.balanceOfBatch(ids.map(()=>addr), ids); }catch(e){ return; }
+  // A single flaky read used to return silently here, leaving the gallery on its
+  // "Connect your wallet" placeholder — indistinguishable from "you own nothing",
+  // and the reason a component you DO hold can look unstakeable. Retry, then say so.
+  let bals;
+  for(let attempt=0; attempt<3 && !bals; attempt++){
+    try{ bals = await items.balanceOfBatch(ids.map(()=>addr), ids); }
+    catch(e){ console.warn("component read failed (attempt "+(attempt+1)+"):", e && e.message);
+      if(attempt<2) await new Promise(r=>setTimeout(r, 800*(attempt+1))); }
+  }
+  if(!bals){
+    const g0 = $("ownedGallery");
+    if(!g0.querySelector(".g-card")) g0.innerHTML = '<p class="muted">Couldn\'t read your components from '+cur().name+' just now — hit Refresh.</p>';
+    return;
+  }
   const owned = CATALOG.map((it,i)=>({it, n: bals[i]})).filter(x=>x.n>0n);
   const sig = chainId+":"+owned.map(o=>o.it.id+"x"+o.n).join(",");
   if(sig===_ownedBuilt) return; _ownedBuilt = sig; // avoid rebuilding viewers every refresh
@@ -505,7 +529,7 @@ async function renderOwned(){
         <button class="stakeone">Stake (off)</button></div>`;
     const amtEl = el.querySelector(".amt");
     amtEl.oninput = ()=>{ let v=Math.floor(Number(amtEl.value)||0); v=Math.max(1,Math.min(max,v)); if(String(v)!==amtEl.value) amtEl.value=v; };
-    el.querySelector(".stakeone").onclick = ()=>{ const a=Math.max(1,Math.min(max,Math.floor(Number(amtEl.value)||1))); tx(c(cur().mg, ABI.mg, true).stake(it.id, a, false), `Staked ${a}× ${it.name} (off) — earning WATT`); };
+    el.querySelector(".stakeone").onclick = ()=>{ const a=Math.max(1,Math.min(max,Math.floor(Number(amtEl.value)||1))); stakeItem(it.id, a, `Staked ${a}× ${it.name} (off) — earning WATT`); };
     g.appendChild(el);
     if(!isImg && (it.key||it.scene)){
       const frame = el.querySelector(".frame3d");
@@ -517,7 +541,7 @@ async function renderOwned(){
 }
 // scan the classic collection for everything the user owns, show name + amount + swap
 async function renderClassic(){
-  const classic = new ethers.Contract(cur().classic, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"], provider);
+  const classic = rc(cur().classic, ["function balanceOfBatch(address[],uint256[]) view returns (uint256[])"]);
   const accts = CLASSIC_IDS.map(()=>addr);
   let bals; try{ bals = await classic.balanceOfBatch(accts, CLASSIC_IDS); }catch(e){ return; }
   classicHeld = [];
@@ -601,6 +625,35 @@ $("net").onchange=e=>switchNet(Number(e.target.value));
 $("refreshStake").onclick=refreshAll;
 
 // stake — per-component Stake buttons are wired in renderOwned()
+// The staking contract TAKES CUSTODY of the component (safeTransferFrom), so the items
+// collection must be setApprovalForAll'd to it first. Missing that approval reverts with
+// ERC1155MissingApprovalForAll — which is exactly what "I can't stake my GPU" looks like.
+// Do it automatically, like migrateClassic() does, instead of relying on the user having
+// pressed the separate "Approve items" button.
+async function ensureItemsApproval(){
+  const ok = await rc(cur().items, ABI.erc1155).isApprovedForAll(addr, cur().mg);
+  if(ok) return;
+  toast("One-time approval so the staking contract can hold your components…");
+  const t = await c(cur().items, ABI.erc1155, true).setApprovalForAll(cur().mg, true, {gasLimit:GAS.approveAll});
+  await t.wait();
+  toast("Items approved ✓");
+}
+// Gas for stake(): usually ~200k, but _update() can force every powered-on rig off in one
+// go, so a big staker's call is unbounded by a fixed number. Estimate on the PUBLIC RPC
+// (never the wallet's — that's the flaky path this page avoids) and fall back to a limit.
+async function stakeGas(id, amt){
+  try{
+    const est = await rc(cur().mg, ABI.mg).stake.estimateGas(id, amt, false, { from: addr });
+    return est > GAS.stakeItem ? est*15n/10n : GAS.stakeItem;
+  }catch(e){ return GAS.stakeItem; }
+}
+async function stakeItem(id, amt, label){
+  if(!signer) return toast("Connect your wallet first","err");
+  try{
+    await ensureItemsApproval();
+    await tx(c(cur().mg, ABI.mg, true).stake(id, amt, false, {gasLimit:await stakeGas(id, amt)}), label);
+  }catch(e){ toast("Failed: "+errMsg(e),"err"); }
+}
 $("approveItems").onclick=()=>tx(c(cur().items,ABI.erc1155,true).setApprovalForAll(cur().mg,true),"Items approved");
 $("selectAll").onclick=()=>{ const boxes=[...$("ownedGallery").querySelectorAll(".chk")]; const anyOff=boxes.some(b=>!b.checked); boxes.forEach(b=>b.checked=anyOff); };
 $("stakeSelected").onclick=async()=>{
@@ -608,12 +661,14 @@ $("stakeSelected").onclick=async()=>{
   const picks=[...$("ownedGallery").querySelectorAll(".g-card")].filter(card=>card.querySelector(".chk").checked)
     .map(card=>{ const max=Number(card.dataset.max); let a=Math.floor(Number(card.querySelector(".amt").value)||1); a=Math.max(1,Math.min(max,a)); return { id:Number(card.dataset.id), amt:a }; });
   if(!picks.length) return toast("Tick at least one component to stake","err");
+  try{ await ensureItemsApproval(); }
+  catch(e){ return toast("Approval failed: "+errMsg(e,80),"err"); }
   const mg=c(cur().mg,ABI.mg,true);
   let done=0;
   for(const p of picks){
     try{ toast(`Staking ${p.amt}× #${p.id} — confirm in wallet (${done+1}/${picks.length})…`);
-      const t=await mg.stake(p.id,p.amt,false); await t.wait(); done++;
-    }catch(e){ toast("Stopped at #"+p.id+": "+((e.shortMessage||e.reason||e.message)+"").slice(0,80),"err"); break; }
+      const t=await mg.stake(p.id,p.amt,false,{gasLimit:await stakeGas(p.id,p.amt)}); await t.wait(); done++;
+    }catch(e){ toast("Stopped at #"+p.id+": "+errMsg(e,80),"err"); break; }
   }
   if(done) toast(`Staked ${done} component type${done>1?"s":""} — earning WATT ✓`,"ok");
   refreshAll();
@@ -688,9 +743,13 @@ async function buyItem(it){
   }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,90),"err"); }
 }
 
-// read-only provider before connect (endpoint health-checked in the background)
+// read-only provider before connect (endpoint health-checked in the background).
+// Its late resolve must NOT overwrite the wallet provider the user has since connected,
+// nor a chain we've since switched to — that swap left Altcoinchain reads pointed at
+// Polygon's RPC, which answers 0x for ALT addresses and silently blanked the
+// components gallery (looks exactly like "I own nothing / I can't stake this").
 provider = new ethers.JsonRpcProvider(CFG[137].rpc, 137);
-ensureRpc(137).then(p => { provider = p; }).catch(e => console.warn(e));
+ensureRpc(137).then(p => { if(!signer && chainId === 137) provider = p; }).catch(e => console.warn(e));
 </script>
 </body>
 </html>
