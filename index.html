@@ -66,6 +66,21 @@
   .stakerow{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);margin:0 0 8px;flex-wrap:wrap}
   .stakerow .chk{width:15px;height:15px;accent-color:var(--violet);flex:0 0 auto}
   .stakerow .amt{width:52px;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:var(--mono);font-size:12px}
+  /* --- multi-buy cart (Buy components) --- */
+  .buyrow{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--dim);margin:0 0 5px;text-transform:none;letter-spacing:0}
+  /* global input rule sets flex:1;min-width:120px — it hits the checkbox too */
+  .buyrow .bchk{width:15px;height:15px;flex:0 0 15px;min-width:0;accent-color:var(--gold);margin:0}
+  /* the global input rule is flex:1;min-width:120px — a qty box must stay small */
+  .buyrow .bqty{width:56px;flex:0 0 56px;min-width:0;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px 6px;font-family:var(--mono);font-size:12px;text-align:center}
+  .brem{font-family:var(--mono);font-size:10.5px;color:var(--dim);min-height:15px;margin:0 0 6px;overflow-wrap:anywhere}
+  .brem.bad{color:var(--red)}
+  .g-card.sel{border-color:var(--gold);box-shadow:0 0 0 1px rgba(255,210,63,.3)}
+  .g-card.over{border-color:var(--red);box-shadow:0 0 0 1px rgba(255,107,94,.35)}
+  .cart{position:sticky;bottom:8px;z-index:9;display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;margin-top:16px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(28,22,54,.96);backdrop-filter:blur(6px)}
+  .cart .ct{display:flex;flex-direction:column;gap:1px}
+  .cart .ct .k{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .cart .ct .v{font-family:var(--mono);font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+  .cart .v.gold{color:var(--gold)} .cart .v.bad{color:var(--red)} .cart .v.ok{color:var(--ok)}
   .free{color:var(--cyan)!important}
   .amtbig{flex:1 1 160px;min-width:0;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-family:var(--mono);font-size:15px}
   /* ============ mobile / in-app wallet browsers ============ */
@@ -90,6 +105,8 @@
     .gallery{grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
     button{min-height:44px}.g-body button{min-height:42px}
     .stakerow{font-size:12.5px}.stakerow .amt{width:56px;min-height:36px}
+    .buyrow{font-size:12.5px}.buyrow .bqty{width:58px;flex-basis:58px;min-height:36px}
+    .cart{gap:8px 14px;padding:11px 12px}.cart .ct .v{font-size:14px}.cart #buySelected{flex:1 1 100%}
     .kv{grid-template-columns:1fr 1fr}
     .item{flex-wrap:wrap}.item button{flex:1 1 auto}
     h2{font-size:16px}
@@ -212,9 +229,18 @@
   <section id="pane-buy" style="display:none">
     <div class="card">
       <h2>Buy components</h2>
-      <p class="d">Each component, rendered from its on-chain BSV model. Prices are in WATT — approve the shop once, then buy. The Gaming PC case is a free mint.</p>
-      <div class="row"><button id="approveShop" class="ghost">Approve WATT for shop</button></div>
+      <p class="d">Each component, rendered from its on-chain BSV model. Prices are in WATT. Tick as many components as you like, set how many of each, and buy them together — the running total and what it leaves in your wallet update as you go.</p>
+      <div class="row"><button id="approveShop" class="ghost">Approve WATT for shop</button><button id="buySelectAll" class="ghost">Select all</button><button id="buyClear" class="ghost">Clear selection</button></div>
       <div class="gallery" id="gallery"></div>
+      <div class="cart" id="cart">
+        <div class="ct"><div class="k">Selected</div><div class="v" id="cartCount">nothing yet</div></div>
+        <div class="ct"><div class="k">Total</div><div class="v gold" id="cartTotal">0 ⚡</div></div>
+        <div class="ct"><div class="k">Your WATT</div><div class="v" id="cartBal">—</div></div>
+        <div class="ct"><div class="k">Left after</div><div class="v" id="cartLeft">—</div></div>
+        <div class="grow"></div>
+        <button id="buySelected" disabled>Buy selected</button>
+      </div>
+      <p class="muted" style="margin:8px 0 0">The shop mints one transaction per component type, so a multi-buy asks your wallet to confirm once per ticked card (after a single WATT approval). Works the same on Polygon and Altcoinchain.</p>
     </div>
   </section>
 
@@ -354,6 +380,7 @@ const BSV_ORIGIN = { "pc.glb":"29ef03b0e0aabb4c9adef4c0c7f1f37aa11567e554366d49b
   "gen2.glb":"109a1bba976772a4c40100bd2010cef8dd3fce7681bbc95d2a23eea3755606f5_0",
   "badge.webp":"a54eaebda42a364c9eb81b6940fa29de780aae8c175e956b889d81ac4ff4e0c8_0" };
 let provider, signer, addr, chainId = 137;
+let _wattBal = null;   // wallet WATT balance in wei (null until connected) — drives the buy cart
 let classicHeld = []; // [{id, amount}]
 // shop catalog: id, name, price(WATT), asset key (glb/webp), gen. free = price 0.
 const CATALOG = [
@@ -380,11 +407,27 @@ async function renderGallery(){
     const frameInner = isImg ? `<img src="${url}" alt="${it.name}" loading="lazy">`
       : `<div class="frame3d" style="width:100%;height:100%"><div class="ph" style="display:grid;place-items:center;height:100%;color:var(--dim);font-family:var(--mono);font-size:11px">loading 3D…</div></div>`;
     const el = document.createElement("div"); el.className = "g-card";
+    // The shop prices every sellable item in WATT; a 0 price means the on-chain shop
+    // has nothing set for that id, and buyWithWatt() reverts "not for sale". Those
+    // cards stay visible but are not selectable so they can't poison a multi-buy.
+    const sellable = !it.free && it.price > 0;
+    el.dataset.id = String(it.id);
     el.innerHTML = `<div class="g-frame">${frameInner}${it.gen===2?'<span class="g2">GEN 2</span>':''}</div>
       <div class="g-body"><div class="gn">${it.name}</div>
-        <div class="gp ${it.free?'free':''}">${it.free?"FREE MINT":it.price.toLocaleString()+" ⚡"}</div>
-        <button data-id="${it.id}">${it.free?"Mint free":"Buy"}</button></div>`;
-    el.querySelector("button").onclick = ()=> buyItem(it);
+        <div class="gp ${sellable?'':'free'}">${sellable?it.price.toLocaleString()+" ⚡":"FREE MINT"}</div>
+        ${sellable
+          ? `<label class="buyrow"><input type="checkbox" class="bchk"> buy <input type="number" class="bqty" value="1" min="1" max="999" step="1"></label>
+             <div class="brem"></div>
+             <button data-id="${it.id}">Buy 1 now</button>`
+          : `<div class="brem">free mint isn't open in the shop</div>
+             <button data-id="${it.id}" disabled>Free mint — not open</button>`}</div>`;
+    if(sellable){
+      const chk = el.querySelector(".bchk"), qty = el.querySelector(".bqty");
+      qty.oninput = ()=>{ let v=Math.floor(Number(qty.value)||0); v=Math.max(1,Math.min(999,v)); if(String(v)!==qty.value) qty.value=v;
+                          if(chk.checked) updateCart(); };
+      chk.onchange = updateCart;
+      el.querySelector("button").onclick = ()=> buyItem(it);
+    }
     g.appendChild(el);
     if(!isImg && (url || it.scene)){
       const frame = el.querySelector(".frame3d");
@@ -436,7 +479,7 @@ async function ensureRpc(id){
 }
 const rc = (a,abi) => new ethers.Contract(a, abi, (_rp[chainId] ||= new ethers.JsonRpcProvider(cur().rpc, chainId)));
 const c = (a,abi,rw) => rw ? new ethers.Contract(a, abi, signer) : rc(a,abi);
-const GAS = { approve:90000n, approveAll:70000n, migrateWatt:220000n, stakeWatt:220000n, migrateNft:260000n, stakeItem:500000n };
+const GAS = { approve:90000n, approveAll:70000n, migrateWatt:220000n, stakeWatt:220000n, migrateNft:260000n, stakeItem:500000n, buyItem:400000n };
 function cur(){ return CFG[chainId]; }
 
 async function connect(){
@@ -471,7 +514,8 @@ async function refreshAll(){
   try{ await ensureRpc(chainId); }catch(e){ toast("Can't reach a "+cur().name+" node — reads unavailable","err"); }
   try{
     const w = c(cur().watt, ABI.erc20);
-    $("wattbal").textContent = "WATT " + fmt(await w.balanceOf(addr));
+    _wattBal = await w.balanceOf(addr);          // exact wei — the buy cart subtracts from it
+    $("wattbal").textContent = "WATT " + fmt(_wattBal);
     const mg = c(cur().mg, ABI.mg);
     const pend = await mg.pendingWatt(addr);
     $("pending").textContent = fmt(pend);
@@ -492,6 +536,7 @@ async function refreshAll(){
     renderClassic();
     renderOwned();
     renderWattPool();
+    updateCart();
   }catch(e){ /* view read hiccup */ }
 }
 // show the V3 components this wallet owns as 3D cards, each with a Stake button
@@ -618,7 +663,7 @@ function ensureRestakeBtn(on){
 $("tabs").addEventListener("click",e=>{ const t=e.target.closest(".tab"); if(!t) return;
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on")); t.classList.add("on");
   ["stake","wstake","migrate","watt","buy"].forEach(p=>$("pane-"+p).style.display = p===t.dataset.t?"block":"none");
-  if(t.dataset.t==="buy") renderGallery();
+  if(t.dataset.t==="buy"){ renderGallery(); updateCart(); }   // cards are appended synchronously; 3D fills in after
   if(t.dataset.t==="wstake") renderWattPool(); });
 $("connect").onclick=connect;
 $("net").onchange=e=>switchNet(Number(e.target.value));
@@ -731,17 +776,102 @@ $("wdBtn").onclick=()=>tx(c(cur().vault,ABI.vault,true).withdrawAll(cur().watt),
 // buy — auto-approve WATT for the shop if the allowance won't cover the price,
 // so a per-purchase (exact-amount) approval never leaves you stuck at 0.
 $("approveShop").onclick=()=>tx(c(cur().watt,ABI.erc20,true).approve(cur().shop,ethers.MaxUint256),"Shop approved (unlimited)");
+const priceWei = (it) => ethers.parseEther(String(it.price||0));
+// One unlimited approval covers every purchase; ask for it only when the current
+// allowance can't cover what's about to be spent.
+async function ensureShopAllowance(need){
+  if(need <= 0n) return;
+  const al = await rc(cur().watt, ABI.erc20).allowance(addr, cur().shop);
+  if(al >= need) return;
+  toast("Approving WATT for the shop…");
+  await (await c(cur().watt,ABI.erc20,true).approve(cur().shop, ethers.MaxUint256, {gasLimit:GAS.approve})).wait();
+}
+// Writes carry an explicit gas limit so ethers never leans on a flaky wallet RPC
+// for eth_estimateGas; estimate through the chain's own node, else use the budget.
+async function buyGas(id, qty){
+  try{ const est = await rc(cur().shop, ABI.shop).buyWithWatt.estimateGas(id, qty, { from: addr });
+       return est > GAS.buyItem ? est*15n/10n : GAS.buyItem; }
+  catch(e){ return GAS.buyItem; }
+}
 async function buyItem(it){
   if(!signer) return toast("Connect your wallet first","err");
   try{
-    const need = ethers.parseEther(String(it.price||0));
-    if(need > 0n){
-      const al = await c(cur().watt, ABI.erc20).allowance(addr, cur().shop);
-      if(al < need){ toast("Approving WATT for the shop…"); await (await c(cur().watt,ABI.erc20,true).approve(cur().shop, ethers.MaxUint256)).wait(); }
-    }
-    await tx(c(cur().shop, ABI.shop, true).buyWithWatt(it.id, 1), (it.free?"Minted ":"Bought ")+it.name);
-  }catch(e){ toast("Failed: "+((e.shortMessage||e.reason||e.message)+"").slice(0,90),"err"); }
+    await ensureShopAllowance(priceWei(it));
+    await tx(c(cur().shop, ABI.shop, true).buyWithWatt(it.id, 1, {gasLimit:await buyGas(it.id,1)}), "Bought "+it.name);
+  }catch(e){ toast("Failed: "+errMsg(e),"err"); }
 }
+
+// ===== multi-buy cart =========================================================
+// The deployed ItemShop only exposes buyWithWatt(id, amount) — there is no batch
+// entrypoint on either chain — so a multi-select buy is one transaction per ticked
+// component type, sent back to back behind a single WATT approval. The cart walks
+// the ticked cards in gallery order and shows what each one leaves in the wallet,
+// so the cost of "one more" is visible before the wallet is ever opened.
+function cartPicks(){
+  return [...document.querySelectorAll("#gallery .g-card")]
+    .map(card => {
+      const chk = card.querySelector(".bchk"); if(!chk || !chk.checked) return null;
+      const it = CATALOG.find(x => x.id === Number(card.dataset.id)); if(!it) return null;
+      let q = Math.floor(Number(card.querySelector(".bqty").value)||1); q = Math.max(1, Math.min(999, q));
+      return { card, it, qty:q, cost: priceWei(it) * BigInt(q) };
+    }).filter(Boolean);
+}
+function updateCart(){
+  const bar = $("cart"); if(!bar) return;
+  const picks = cartPicks(), byCard = new Map(picks.map(p=>[p.card,p]));
+  let running = 0n, units = 0;
+  for(const card of document.querySelectorAll("#gallery .g-card")){
+    const rem = card.querySelector(".brem"); if(!rem) continue;
+    const p = byCard.get(card);
+    if(!p){ card.classList.remove("sel","over"); if(card.querySelector(".bchk")){ rem.textContent=""; rem.classList.remove("bad"); } continue; }
+    running += p.cost; units += p.qty;
+    const left = _wattBal===null ? null : _wattBal - running;   // balance after this card and everything above it
+    card.classList.add("sel");
+    card.classList.toggle("over", left !== null && left < 0n);
+    rem.classList.toggle("bad", left !== null && left < 0n);
+    rem.textContent = fmt(p.cost) + " ⚡"
+      + (left === null ? "" : left < 0n ? " · short " + fmt(-left) + " ⚡" : " · leaves " + fmt(left) + " ⚡");
+  }
+  const total = running, left = _wattBal===null ? null : _wattBal - total, short = left !== null && left < 0n;
+  $("cartCount").textContent = picks.length
+    ? picks.length + " type" + (picks.length>1?"s":"") + " · " + units + " item" + (units>1?"s":"")
+    : "nothing yet";
+  $("cartTotal").textContent = fmt(total) + " ⚡";
+  $("cartBal").textContent = _wattBal===null ? "connect wallet" : fmt(_wattBal) + " ⚡";
+  const lv = $("cartLeft");
+  lv.textContent = _wattBal===null ? "—" : short ? "short " + fmt(-left) + " ⚡" : fmt(left) + " ⚡";
+  lv.className = "v" + (_wattBal===null ? "" : short ? " bad" : " ok");
+  const btn = $("buySelected");
+  btn.disabled = !picks.length || short;
+  btn.textContent = picks.length ? "Buy " + units + " item" + (units>1?"s":"") + " · " + fmt(total) + " ⚡" : "Buy selected";
+}
+$("buySelectAll").onclick = ()=>{ const b=[...document.querySelectorAll("#gallery .bchk")]; const anyOff=b.some(x=>!x.checked);
+  b.forEach(x=>x.checked=anyOff); updateCart(); };
+$("buyClear").onclick = ()=>{ document.querySelectorAll("#gallery .bchk").forEach(x=>x.checked=false); updateCart(); };
+$("buySelected").onclick = async ()=>{
+  if(!signer) return toast("Connect your wallet first","err");
+  const picks = cartPicks();
+  if(!picks.length) return toast("Tick at least one component to buy","err");
+  const total = picks.reduce((a,p)=>a+p.cost, 0n);
+  if(_wattBal !== null && total > _wattBal) return toast("Not enough WATT — that selection costs "+fmt(total)+" ⚡","err");
+  try{ await ensureShopAllowance(total); }
+  catch(e){ return toast("Approval failed: "+errMsg(e,80),"err"); }
+  const shop = c(cur().shop, ABI.shop, true);
+  let done = 0, bought = 0, spent = 0n;
+  for(const p of picks){
+    try{
+      toast(`Buying ${p.qty}× ${p.it.name} — confirm in wallet (${done+1}/${picks.length})…`);
+      const t = await shop.buyWithWatt(p.it.id, p.qty, {gasLimit: await buyGas(p.it.id, p.qty)});
+      await t.wait();
+      done++; bought += p.qty; spent += p.cost;
+      // keep the running balance honest between confirmations
+      if(_wattBal !== null) _wattBal -= p.cost;
+      p.card.querySelector(".bchk").checked = false; updateCart();
+    }catch(e){ toast("Stopped at "+p.it.name+": "+errMsg(e,80),"err"); break; }
+  }
+  if(done) toast(`Bought ${bought} component${bought>1?"s":""} for ${fmt(spent)} ⚡ ✓`,"ok");
+  refreshAll();
+};
 
 // read-only provider before connect (endpoint health-checked in the background).
 // Its late resolve must NOT overwrite the wallet provider the user has since connected,
