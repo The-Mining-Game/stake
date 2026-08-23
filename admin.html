@@ -53,6 +53,12 @@
     <button id="proposeCuri">Propose setContractURI(fix)</button>
   </div>
   <div class="card">
+    <h2 style="margin:0 0 6px;font-size:16px">1c · Open the free Gaming PC mint</h2>
+    <p class="muted">Grants <b>CaseFreeMint</b> (<code id="cfmAddr">—</code>) mint rights on the item collection, so any player can mint one Gaming PC case by paying only their own gas. One per wallet, forever — transferring the case away does not re-open it. Until this executes, the mint button on the shop stays closed.</p>
+    <p class="muted" id="cfmState">—</p>
+    <button id="proposeFree">Propose setMinter(free-mint)</button>
+  </div>
+  <div class="card">
     <h2 style="margin:0 0 6px;font-size:16px">2 · Confirm &amp; execute</h2>
     <p class="muted">Have the <b>second owner</b> connect and Confirm the same proposal → 2 of 3. Then anyone can Execute.</p>
     <div class="row"><button class="ghost" id="refresh">Refresh proposals</button></div>
@@ -64,6 +70,8 @@
 import { ethers } from "./vendor/ethers.min.js";
 const MSIG = "0xc49699a99177a058439Ac7E3D2F5aF03d95e1D99";
 const MIG = "0x97BcC99ff34FA2cde929c97074011E8929F59679";
+// CaseFreeMint — the free Gaming PC minter. null = not deployed on that chain yet.
+const CFM = { 137:null, 2330:"0x91Ae9eDe6016AdF84c643F9Ce5Bb60A9438D792f" };
 const ITEMS = { 137:"0x0CDbf4926a8EdFFaa803B96f8fa90B065DE19Eb2", 2330:"0x851fd0205348783444Fc9EDe99Ca2321681EC99b" };
 const RPC = { 137:"https://polygon-bor-rpc.publicnode.com", 2330:"https://rpc.wattxchange.app" };
 const HEX = { 137:"0x89", 2330:"0x91a" };
@@ -72,8 +80,22 @@ const COLL_URI = "https://items.wattxchange.app/collection.json";
 const ITEMS_IFACE = new ethers.Interface(["function setMinter(address,bool)","function setContractURI(string)"]);
 const SETCURI = ITEMS_IFACE.encodeFunctionData("setContractURI",[COLL_URI]);
 const SEL_MINTER = "0xcf456ae7", SEL_CURI = SETCURI.slice(0,10);
-const LABELS = { [SEL_MINTER]:"setMinter(migrator)", [SEL_CURI]:"setContractURI(branding fix)" };
-const EXEC_MSG = { [SEL_MINTER]:"Executed — migrator is now a minter ✓", [SEL_CURI]:"Executed — OpenSea collection branding is live ✓" };
+// Every setMinter proposal shares one selector, so the target address has to be
+// decoded — otherwise a free-mint grant reads as a migrator grant in the list.
+function labelFor(data){
+  const sel = data.slice(0,10);
+  if(sel === SEL_CURI) return "setContractURI(branding fix)";
+  if(sel !== SEL_MINTER) return null;
+  try{
+    const [who, ok] = ITEMS_IFACE.decodeFunctionData("setMinter", data);
+    const w = who.toLowerCase();
+    const name = w === MIG.toLowerCase() ? "migrator"
+      : w === (CFM[chainId]||"").toLowerCase() ? "free-mint"
+      : who.slice(0,8)+"…"+who.slice(-4);
+    return `setMinter(${name}, ${ok})`;
+  }catch(e){ return "setMinter(?)"; }
+}
+const EXEC_MSG = { [SEL_MINTER]:"Executed — the grant is live ✓", [SEL_CURI]:"Executed — OpenSea collection branding is live ✓" };
 const MSIG_ABI = ["function submit(address to,uint256 value,bytes data) returns (uint256)","function confirm(uint256 id)","function execute(uint256 id)","function threshold() view returns (uint256)","function transactions(uint256) view returns (address to,uint256 value,bytes data,bool executed,uint256 confirmations)","function confirmedBy(uint256,address) view returns (bool)"];
 let provider, signer, addr, chainId=137;
 const $=id=>document.getElementById(id);
@@ -92,6 +114,28 @@ $("propose").onclick=()=>{ if(!signer) return toast("Connect first","err");
   tx(new ethers.Contract(MSIG,MSIG_ABI,signer).submit(ITEMS[chainId],0,SETMINTER),"Proposed — now the second owner confirms"); };
 $("proposeCuri").onclick=()=>{ if(!signer) return toast("Connect first","err");
   tx(new ethers.Contract(MSIG,MSIG_ABI,signer).submit(ITEMS[chainId],0,SETCURI),"Proposed — now the second owner confirms"); };
+$("proposeFree").onclick=()=>{ if(!signer) return toast("Connect first","err");
+  const a = CFM[chainId]; if(!a) return toast("CaseFreeMint isn't deployed on this chain yet","err");
+  const data = ITEMS_IFACE.encodeFunctionData("setMinter",[a,true]);
+  tx(new ethers.Contract(MSIG,MSIG_ABI,signer).submit(ITEMS[chainId],0,data),"Proposed — now the second owner confirms"); };
+// Say plainly whether the grant is already live, so nobody proposes it twice.
+async function refreshFreeMint(rp){
+  const a = CFM[chainId];
+  $("cfmAddr").textContent = a || "not deployed on this chain yet";
+  $("proposeFree").disabled = !a;
+  if(!a){ $("cfmState").textContent = "Deploy CaseFreeMint on this chain first."; return; }
+  try{
+    const items = new ethers.Contract(ITEMS[chainId], ["function minters(address) view returns (bool)"], rp);
+    const on = await items.minters(a);
+    const fm = new ethers.Contract(a, ["function freeMintedCount() view returns (uint256)","function paused() view returns (bool)","function owner() view returns (address)"], rp);
+    const [n, paused, owner] = await Promise.all([fm.freeMintedCount(), fm.paused(), fm.owner()]);
+    $("cfmState").textContent = (on ? "✓ Grant is LIVE — the mint is open. " : "✗ Not a minter yet — the mint is closed. ")
+      + n.toString() + " case" + (n===1n?"":"s") + " minted so far"
+      + (paused ? " · PAUSED by the owner" : "")
+      + (owner.toLowerCase() === MSIG.toLowerCase() ? " · owned by this multisig" : " · owner " + owner);
+    $("proposeFree").disabled = on;
+  }catch(e){ $("cfmState").textContent = "Couldn't read the free-mint contract just now."; }
+}
 async function refresh(){
   const rp = signer||new ethers.JsonRpcProvider(RPC[chainId]);
   const ms = new ethers.Contract(MSIG, MSIG_ABI, rp); let th;
@@ -100,10 +144,11 @@ async function refresh(){
   const items=ITEMS[chainId];
   for(let i=0;;i++){ let t; try{ t=await ms.transactions(i);}catch{break;}
     const sel=t.data.slice(0,10);
-    if(t.to.toLowerCase()!==items.toLowerCase() || !LABELS[sel]) continue;
+    const label = labelFor(t.data);
+    if(t.to.toLowerCase()!==items.toLowerCase() || !label) continue;
     const el=document.createElement("div"); el.className="prop";
     const mine = signer ? await ms.confirmedBy(i,addr) : false;
-    el.innerHTML=`<b>Proposal #${i}</b> · ${LABELS[sel]} · <span class="pill ${t.executed?'done':''}">${t.executed?'EXECUTED':t.confirmations+' / '+th}</span> ${mine?'· you confirmed':''}`;
+    el.innerHTML=`<b>Proposal #${i}</b> · ${label} · <span class="pill ${t.executed?'done':''}">${t.executed?'EXECUTED':t.confirmations+' / '+th}</span> ${mine?'· you confirmed':''}`;
     if(!t.executed){ const cf=document.createElement("button"); cf.className="ghost"; cf.textContent="Confirm"; cf.style.marginLeft="8px";
       cf.onclick=()=>tx(new ethers.Contract(MSIG,MSIG_ABI,signer).confirm(i),"Confirmed");
       const ex=document.createElement("button"); ex.textContent="Execute"; ex.style.marginLeft="6px";
@@ -111,6 +156,7 @@ async function refresh(){
       el.append(" ",cf,ex); }
     box.appendChild(el);
   }
+  refreshFreeMint(rp);
   if(!box.children.length) box.innerHTML='<p class="muted">No proposals yet on '+(chainId===137?"Polygon":"Altcoinchain")+". Propose one above.</p>";
 }
 provider=new ethers.JsonRpcProvider(RPC[137]); refresh();
