@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WATT v2 / ALT Liquidity — The Mining Game</title>
+<style>
+  :root{
+    --bg:#0a0f0c; --panel:#0f1712; --panel2:#12211a; --line:#1d3327;
+    --ink:#e8ffe9; --muted:#8fb69c; --dim:#5f8570;
+    --acc:#39ff88; --acc2:#00d15a; --warn:#ffcc55; --bad:#ff5d6c;
+    --shadow:0 18px 50px rgba(0,0,0,.55);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-text-size-adjust:100%}
+  body{background:
+     radial-gradient(1100px 480px at 82% -8%, rgba(57,255,136,.10), transparent 60%),
+     radial-gradient(900px 420px at 8% 108%, rgba(0,209,90,.07), transparent 60%),
+     var(--bg);min-height:100vh}
+  a{color:var(--acc)}
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 60px}
+  header{display:flex;align-items:center;gap:12px;padding:8px 2px 20px}
+  header .logos{display:flex;align-items:center;gap:10px;min-width:0}
+  header img{height:34px;width:auto;image-rendering:pixelated;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  header .watt{height:30px;image-rendering:auto}
+  header .sub{margin-left:auto;font:600 11px/1 var(--mono);letter-spacing:.14em;color:var(--dim);text-transform:uppercase;text-align:right}
+  nav{display:flex;gap:14px;font:600 13px var(--sans);padding:0 2px 14px}
+  nav a{color:var(--muted);text-decoration:none}
+  nav a:hover{color:var(--acc)}
+  .card{background:linear-gradient(180deg,var(--panel),#0b120e);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+  h1{font-size:19px;margin:0 0 2px;letter-spacing:.2px}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.5}
+  .banner{border:1px solid;border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.45;margin:0 0 16px}
+  .banner.warn{border-color:rgba(255,204,85,.4);background:rgba(255,204,85,.07);color:#ffe9b0}
+  .banner.ok{border-color:rgba(57,255,136,.35);background:rgba(57,255,136,.06);color:#bcffd6}
+  .banner b{color:#fff}
+  .amt{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:0 0 6px}
+  .amt .row{display:flex;align-items:center;gap:8px}
+  .amt input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:800 26px/1.1 var(--sans)}
+  .amt .tok{font-weight:800;color:var(--acc);font-size:15px}
+  .amt .max{background:rgba(57,255,136,.12);color:var(--acc);border:1px solid rgba(57,255,136,.3);border-radius:8px;padding:5px 9px;font:700 11px var(--mono);cursor:pointer}
+  .bal{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 3px;margin-bottom:10px}
+  .bal b{color:var(--ink)}
+  .route{border:1px dashed var(--line);border-radius:12px;padding:11px 13px;font-size:12.5px;color:var(--muted);line-height:1.7;margin:0 0 16px}
+  .route .r{display:flex;justify-content:space-between;gap:12px}
+  .route .r span:last-child{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+  .route .path{color:var(--dim);font:600 11px var(--mono);letter-spacing:.03em;border-top:1px solid var(--line);margin-top:8px;padding-top:8px;word-break:break-all}
+  button.act{width:100%;border:0;border-radius:14px;padding:15px;font:800 15px var(--sans);cursor:pointer;transition:.15s;margin-top:4px}
+  button.act.primary{background:linear-gradient(180deg,var(--acc),var(--acc2));color:#04170c;box-shadow:0 10px 26px rgba(57,255,136,.25)}
+  button.act.primary:hover{filter:brightness(1.06)}
+  button.act.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  button.act:disabled{opacity:.45;cursor:not-allowed;box-shadow:none;filter:none}
+  .log{margin-top:14px;background:#060b08;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:12px/1.6 var(--mono);color:var(--muted);max-height:150px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+  .log:empty{display:none}
+  .foot{color:var(--dim);font-size:11px;text-align:center;margin-top:22px;line-height:1.6}
+  @media (max-width:420px){ .wrap{padding:14px 12px 48px} .amt input{font-size:22px} header .sub{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logos">
+      <img class="mg" src="https://stake.mining-game.wattxchange.app/mg-logo.png" alt="The Mining Game" onerror="this.style.display='none'">
+      <img class="watt" src="https://stake.mining-game.wattxchange.app/watt.png" alt="WATT" onerror="this.style.display='none'">
+    </div>
+    <div class="sub">WATT v2 / ALT<br>LIQUIDITY</div>
+  </header>
+  <nav>
+    <a href="index.html">◂ Stake</a>
+    <a href="pools.html">⛏ Pools</a>
+    <a href="bridge.html">🌉 Bridge</a>
+    <a href="swap.html">♻ Migrate</a>
+    <a href="#" style="color:var(--acc)">💧 Pool</a>
+  </nav>
+
+  <div class="card">
+    <h1>Add WATT v2 / ALT liquidity</h1>
+    <p class="lead">Seeds the <b>WATT v2 / wALT</b> pool on SwapinDEX (Altcoinchain). This pool is
+      the missing venue that turns <b>WATT v2 ⇄ ALT</b> into a live market — the moment it holds
+      liquidity, the bridge's route engine lights up <b>POL → ALT</b>, <b>WTX → ALT</b> and
+      <b>WATT → ALT</b> automatically. Your ALT is wrapped by the router; you receive LP tokens.</p>
+
+    <div id="banner" class="banner warn">Reading pool + market state…</div>
+
+    <div class="amt">
+      <div class="row">
+        <input id="amt" inputmode="decimal" placeholder="0.0" autocomplete="off">
+        <span class="tok">WATT v2</span>
+        <span class="max" id="max">MAX</span>
+      </div>
+    </div>
+    <div class="bal"><span>Your WATT v2 (ALT chain)</span><b><span id="balW">—</span></b></div>
+    <div class="bal"><span>Your ALT</span><b><span id="balA">—</span></b></div>
+
+    <div class="route">
+      <div class="r"><span>You add</span><span><span id="rW">0</span> WATT v2</span></div>
+      <div class="r"><span>+ matching</span><span><span id="rA">0</span> ALT</span></div>
+      <div class="r"><span>Ratio (<span id="rSrc">market</span>)</span><span><span id="rRatio">—</span> ALT per WATT</span></div>
+      <div class="r"><span>Pool reserves now</span><span id="rRes">empty — you set the opening price</span></div>
+      <div class="path">router 0xae168Ce4…a4d6 · WATTv2 0xB7635E38…630D · wALT 0x48721ADe…32b6</div>
+    </div>
+
+    <p class="lead" style="color:var(--warn)"><b>Price matters.</b> A new pool opens at exactly the
+      ratio you deposit. This page pre-fills the live aggregated market ratio (QuickSwap/Uniswap via
+      the bridge desk) — deposit far from it and arbitrage takes the difference.</p>
+
+    <button class="act" id="go">Connect wallet</button>
+    <pre id="log" class="log"></pre>
+  </div>
+  <p class="foot">SwapinDEX is a Uniswap-V2 style DEX on Altcoinchain (chain 2330).<br>
+    LP tokens stay in your wallet — remove liquidity any time on the router.</p>
+</div>
+
+<script type="module">
+import { ethers } from "./vendor/ethers.min.js";
+
+const C = {
+  chainId: 2330, hex: "0x91a", name: "Altcoinchain",
+  rpc: "https://rpc.wattxchange.app",
+  router: "0xae168Ce47cebca9abbC5107a58df0532f1afa4d6",
+  factory: "0x347aAc6D939f98854110Ff48dC5B7beB52D86445",
+  wattV2: "0xB7635E386283CAE6FB1A710f19CaA8220beF630D",
+  walt: "0x48721ADeFE5b97101722c0866c2AffCE797C32b6",
+};
+const PRICES = "https://bridge.wattxchange.app/api/prices";
+
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+];
+const ROUTER_ABI = [
+  "function addLiquidityETH(address token,uint256 amountTokenDesired,uint256 amountTokenMin,uint256 amountETHMin,address to,uint256 deadline) payable returns (uint256,uint256,uint256)",
+];
+const FACTORY_ABI = ["function getPair(address,address) view returns (address)"];
+const PAIR_ABI = [
+  "function getReserves() view returns (uint112,uint112,uint32)",
+  "function token0() view returns (address)",
+];
+const ZERO = "0x0000000000000000000000000000000000000000";
+
+const $ = s => document.querySelector(s);
+const log = m => { const l=$("#log"); l.textContent += (l.textContent?"\n":"") + m; l.scrollTop=l.scrollHeight; };
+const fmt = (bn,p=4) => Number(ethers.formatUnits(bn,18)).toLocaleString(undefined,{maximumFractionDigits:p});
+const fmtN = (n,p=4) => Number(n).toLocaleString(undefined,{maximumFractionDigits:p});
+
+let provider, signer, account, chainId;
+let balW = 0n, balA = 0n, allowance = 0n, busy = false;
+let ratio = null, ratioSrc = "market", pairAddr = null, poolHasLiq = false;
+
+const rp = new ethers.JsonRpcProvider(C.rpc, C.chainId, { staticNetwork: true });
+// Altcoinchain wants legacy (type-0) transactions; same pattern the migrate page uses.
+let gasPrice = null;
+async function loadGas(){ try{ gasPrice = (await rp.getFeeData()).gasPrice; }catch(e){} }
+const ov = (gasLimit)=> gasPrice ? {gasLimit,gasPrice,type:0} : {gasLimit};
+
+async function loadState(){
+  try{
+    const f = new ethers.Contract(C.factory, FACTORY_ABI, rp);
+    pairAddr = await f.getPair(C.wattV2, C.walt);
+    if (pairAddr !== ZERO){
+      const p = new ethers.Contract(pairAddr, PAIR_ABI, rp);
+      const [r0,r1] = await p.getReserves();
+      const t0 = (await p.token0()).toLowerCase();
+      const [rWatt,rAlt] = t0 === C.wattV2.toLowerCase() ? [r0,r1] : [r1,r0];
+      if (rWatt > 0n && rAlt > 0n){
+        poolHasLiq = true;
+        ratio = Number(rAlt)/Number(rWatt);         // ALT per WATT, pool truth
+        ratioSrc = "pool";
+        $("#rRes").textContent = `${fmt(rWatt,0)} WATT / ${fmt(rAlt,0)} ALT`;
+      }
+    }
+    if (!poolHasLiq){
+      const j = await (await fetch(PRICES)).json();
+      if (j?.usd?.WATT && j?.usd?.ALT){ ratio = j.usd.WATT / j.usd.ALT; ratioSrc = "market (aggregator)"; }
+      $("#rRes").textContent = pairAddr && pairAddr !== ZERO ? "pair exists, empty — you set the opening price" : "no pair yet — first deposit creates it";
+    }
+    $("#rSrc").textContent = ratioSrc;
+    $("#rRatio").textContent = ratio ? fmtN(ratio,4) : "—";
+    $("#banner").className = "banner " + (poolHasLiq ? "ok" : "warn");
+    $("#banner").innerHTML = poolHasLiq
+      ? `<b>Pool is live</b> at ${pairAddr.slice(0,10)}… — your deposit joins at the pool's own ratio (${fmtN(ratio,4)} ALT/WATT). The POL→ALT / WTX→ALT routes are active.`
+      : `<b>You are seeding a new market.</b> Opening ratio pre-filled from the live aggregator: <b>1 WATT v2 = ${ratio?fmtN(ratio,4):"…"} ALT</b> (WATT ≈ ALT×ratio in USD). Routes to ALT go live on your first deposit.`;
+  }catch(e){ $("#banner").textContent = "state read failed: " + (e.shortMessage ?? e.message); }
+  paint();
+}
+
+async function refresh(){
+  if(!account) return;
+  try{
+    const w = new ethers.Contract(C.wattV2, ERC20_ABI, rp);
+    [balW, allowance, balA] = await Promise.all([
+      w.balanceOf(account), w.allowance(account, C.router), rp.getBalance(account),
+    ]);
+    $("#balW").textContent = fmt(balW);
+    $("#balA").textContent = fmt(balA);
+  }catch(e){ log("read failed: " + (e.shortMessage ?? e.message)); }
+  paint();
+}
+
+function amtWei(){
+  const t = ($("#amt").value || "").trim();
+  if(!/^\d*\.?\d*$/.test(t) || t==="" || t===".") return 0n;
+  try{ return ethers.parseUnits(t,18); }catch(e){ return 0n; }
+}
+function altWei(a){
+  if(!ratio || a===0n) return 0n;
+  return ethers.parseUnits((Number(ethers.formatUnits(a,18)) * ratio).toFixed(18), 18);
+}
+
+function paint(){
+  const b = $("#go"); const a = amtWei(); const alt = altWei(a);
+  $("#rW").textContent = fmt(a); $("#rA").textContent = fmt(alt);
+  if(busy) return;
+  if(!account){ b.textContent="Connect wallet"; b.disabled=false; b.className="act"; return; }
+  if(chainId!==C.chainId){ b.textContent="Switch wallet to Altcoinchain"; b.disabled=false; b.className="act ghost"; return; }
+  if(!ratio){ b.textContent="Waiting for a price…"; b.disabled=true; b.className="act"; return; }
+  if(a===0n){ b.textContent="Enter a WATT v2 amount"; b.disabled=true; b.className="act"; return; }
+  if(a>balW){ b.textContent="Not enough WATT v2"; b.disabled=true; b.className="act"; return; }
+  if(alt>balA){ b.textContent="Not enough ALT for the matching side"; b.disabled=true; b.className="act"; return; }
+  b.disabled=false; b.className="act primary";
+  b.textContent = allowance < a ? "Approve WATT v2" : `Add ${fmt(a,0)} WATT + ${fmt(alt,0)} ALT`;
+}
+
+async function connect(){
+  if(!window.ethereum){ log("No wallet found. Install Rabby or MetaMask."); return; }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  await provider.send("eth_requestAccounts",[]);
+  signer = await provider.getSigner();
+  account = await signer.getAddress();
+  chainId = Number((await provider.getNetwork()).chainId);
+  log(`Connected ${account.slice(0,6)}…${account.slice(-4)} on chain ${chainId}`);
+  await loadGas();
+  await refresh();
+}
+async function switchChain(){
+  try{ await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:C.hex}]}); }
+  catch(e){
+    if(e.code===4902){ await window.ethereum.request({method:"wallet_addEthereumChain",params:[{
+      chainId:C.hex, chainName:C.name, rpcUrls:[C.rpc],
+      nativeCurrency:{name:"ALT",symbol:"ALT",decimals:18},
+    }]}); } else { log(e.shortMessage ?? e.message); }
+  }
+}
+
+async function act(){
+  if(!account) return connect();
+  if(chainId!==C.chainId) return switchChain();
+  const a = amtWei(); const alt = altWei(a);
+  if(a===0n || a>balW || alt===0n || alt>balA) return;
+  busy = true; $("#go").disabled = true;
+  try{
+    if(allowance < a){
+      $("#go").textContent = "Approving WATT v2…";
+      const w = new ethers.Contract(C.wattV2, ERC20_ABI, signer);
+      const tx = await w.approve(C.router, a, ov(90000n));
+      log("approve " + tx.hash); await tx.wait();
+      log("approved"); allowance = a;
+    } else {
+      $("#go").textContent = "Adding liquidity…";
+      const r = new ethers.Contract(C.router, ROUTER_ABI, signer);
+      // mins at 98% — a fresh pool takes the exact ratio; a live pool may drift a little
+      const tx = await r.addLiquidityETH(
+        C.wattV2, a, a*98n/100n, alt*98n/100n, account,
+        BigInt(Math.floor(Date.now()/1000)+1800),
+        { value: alt, ...ov(4500000n) });
+      log("addLiquidityETH " + tx.hash); await tx.wait();
+      log(`✅ liquidity added — ${fmt(a,0)} WATT v2 + ${fmt(alt,0)} ALT. Routes to ALT are live.`);
+      $("#amt").value = "";
+      await loadState();
+    }
+    await refresh();
+  }catch(e){
+    log("failed: " + (e.shortMessage ?? e.reason ?? e.message));
+  }finally{ busy = false; paint(); }
+}
+
+$("#go").addEventListener("click", act);
+$("#amt").addEventListener("input", paint);
+$("#max").addEventListener("click", ()=>{ $("#amt").value = ethers.formatUnits(balW,18); paint(); });
+if(window.ethereum){
+  window.ethereum.on?.("chainChanged", ()=>location.reload());
+  window.ethereum.on?.("accountsChanged", ()=>location.reload());
+}
+loadState(); loadGas();
+</script>
+</body>
+</html>
