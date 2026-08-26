@@ -622,7 +622,9 @@ async function renderPositions(mg, n){
     // Stake-site positions are powered-OFF earners only. Powering a rig ON to mine
     // requires an assembled rig staked into a pool — that happens in the game, not here.
     el.innerHTML=`<div><div class="n">Component #${p.id} ×${p.amount}</div><div class="s">⚡ earning WATT · weight ${p.weight}</div></div><div class="grow"></div>`;
-    const bu=document.createElement("button"); bu.textContent="Unstake"; bu.onclick=()=>tx(mg.unstake(i),"Unstaked");
+    // mg here is the rc() read contract — writes must go through the signer
+    const bu=document.createElement("button"); bu.textContent="Unstake";
+    bu.onclick=()=>{ if(!signer) return toast("Connect your wallet first","err"); tx(c(cur().mg,ABI.mg,true).unstake(i),"Unstaked"); };
     el.append(bu); box.appendChild(el);
   }
 }
