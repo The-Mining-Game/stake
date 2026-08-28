@@ -119,17 +119,17 @@
 import { ethers } from "./vendor/ethers.min.js";
 const CFG = {
   137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com", watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f",
-    registry:"0xCe347180C3A45151C10366Da43fD822289ebB075", hub:"0x6f8330bB06D93A8932618EC1Fbb2818323EC3bf5", engine:"0x782585f15E75b76C4bE33Ae31c47Bc437C9Bbfe0", rigNft:"0xf9F94e9fa744DE1209EF28321604a0Aa3B21a884" },
+    registry:"0xC65E46645EF9d7Bf1F7D526c9Fb4F4B54704d1DE", hub:"0x8eC1Fa15A1DFB038396176a122ED2D385Ee04339", engine:"0x8d372e3e1fbB82e707D09f782a1e3959DC447354", rigNft:"0xf9F94e9fa744DE1209EF28321604a0Aa3B21a884" },
   2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://rpc.wattxchange.app", watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D",
-    registry:"0x0f1e3C2336fBf35148FdbA21F81fA3B57a1DF254", hub:"0xfbc6168D4c4f112275713B976612891E432e265e", engine:"0xB0A142d97225AD61682d77A30a2eC7144826F487", rigNft:"0x131A875e1bfEB2B3735E5d9Ad5e8871fF6CE9381" },
+    registry:"0x88beBed99cb45D81F5DEd708682C55a2b26a221C", hub:"0x7Cee30E196Cb298e4634D7192C527dA37f2C7d57", engine:"0x755dCf18b521BC7e42f88fdfEBa2C910809AF09F", rigNft:"0x131A875e1bfEB2B3735E5d9Ad5e8871fF6CE9381" },
   22356:{ name:"WATTxchain", hex:"0x5754", rpc:"https://rpc-wtx.wattxchange.app", watt:"0xc4603E2582aE320857379819123dFbFd3093dcfa",
     registry:"0x3a02971ceAF9B817e770c36e393A95542bC65Df2", hub:"0x9fAb0fBa9b458A7A0c9D60a26BC33f6E2695F179", engine:"0xE2D4eC76dFFAC5215a03332B4A01ce0AFF9A91c1", rigNft:"0x5f9be9282E29fCE419cE2e424ED3fd0be842C7e7" },
 };
-const TARGETS = [{id:0,sym:'ALT'},{id:1,sym:'WTX'},{id:2,sym:'POL'},{id:3,sym:'BSV'},{id:4,sym:'HTH'}];
+const TARGETS = [{id:0,sym:'ALT'},{id:1,sym:'WTX'},{id:2,sym:'POL'},{id:3,sym:'BSV'},{id:4,sym:'HTH'},{id:5,sym:'BITN'}];
 const ABI = {
   erc20:["function balanceOf(address) view returns (uint256)","function approve(address,uint256) returns (bool)","function allowance(address,address) view returns (uint256)"],
   registry:["function registerPoolWithNode(string,string,string,string,string,uint256,uint256,uint8[])","function isRegistered(address) view returns (bool)","function requiredStake() view returns (uint256)","function getPool(address) view returns (tuple(address operator,string name,string description,string endpoint,uint256 feePercent,uint256 minPayout,uint256 stakedAmount,uint256 registeredAt,uint256 unstakeRequestedAt,uint8 status,uint8[] supportedAlgorithms))"],
-  engine:["function createPool(uint256,uint8,uint16,uint16,string,string) returns (uint256)","function startMining(address,uint256,uint256,uint256)","function claim(address,uint256)","function stopMining(address,uint256)","function pendingRewards(address,uint256) view returns (uint256)","function poolCount() view returns (uint256)","function pools(uint256) view returns (address owner,uint256 targetId,uint8 requiredAlgo,uint16 rewardFeeBps,uint16 wattCutBps,string name,string nodeEndpoint,bool active,uint256 hashRate,uint256 minersActive,uint256 feesEarned,uint256 wattEarned)"],
+  engine:["function createPool(uint256[],uint8,uint16,uint16,string,string) returns (uint256)","function startMining(address,uint256,uint256,uint256,uint256)","function claim(address,uint256)","function stopMining(address,uint256)","function pendingRewards(address,uint256) view returns (uint256)","function poolCount() view returns (uint256)","function poolTargets(uint256) view returns (uint256[])","function pools(uint256) view returns (address owner,uint8 requiredAlgo,uint16 rewardFeeBps,uint16 wattCutBps,string name,string nodeEndpoint,bool active,uint256 hashRate,uint256 minersActive,uint256 wattEarned,uint256 totalPower)"],
   hub:["function setPayoutAddress(uint256,string)","function payoutAddressFor(uint256,address) view returns (string)","function balanceOfTarget(uint256) view returns (uint256)","function targetCount() view returns (uint256)"],
   rig:["function isApprovedForAll(address,address) view returns (bool)","function setApprovalForAll(address,bool)","function ownerOf(uint256) view returns (address)","function isStaked(uint256) view returns (bool)","function isMining(uint256) view returns (bool)","function balanceOf(address) view returns (uint256)","function tokenOfOwnerByIndex(address,uint256) view returns (uint256)","function rigTraits(uint256) view returns (tuple(uint16 hashRate,uint8 algorithm,uint8 efficiency,uint16 wattConsumption,uint8 rarity,uint8 cooling,uint8 durability))"],
 };
@@ -161,10 +161,11 @@ async function renderPools(){
   const box=$("poolList"); $("bnet").textContent=cur().name;
   try{ const eng=rc(cur().engine,ABI.engine); const n=Number(await eng.poolCount());
     if(!n){ box.innerHTML='<p class="d">No pools yet on '+cur().name+'. Be the first — open one in “Create a pool”.</p>'; return; }
-    let html=''; for(let i=0;i<n;i++){ const p=await eng.pools(i); const tgt=TARGETS.find(t=>t.id===Number(p.targetId));
-      html+=`<div class="pool"><div class="n">#${i} ${p.name||'(unnamed)'} <span class="chip">${tgt?tgt.sym:'target '+p.targetId}</span>${p.active?'':'<span class="chip" style="color:var(--red)">paused</span>'}</div>
+    let html=''; for(let i=0;i<n;i++){ const p=await eng.pools(i); let tids=[]; try{tids=(await eng.poolTargets(i)).map(x=>Number(x));}catch(e){}
+      const menu=tids.map(t=>{const s=TARGETS.find(x=>x.id===t);return s?s.sym:('#'+t);}).join(' · ')||'—';
+      html+=`<div class="pool"><div class="n">#${i} ${p.name||'(unnamed)'} <span class="chip">${menu}</span>${p.active?'':'<span class="chip" style="color:var(--red)">paused</span>'}</div>
         <div class="m">host ${p.owner.slice(0,8)}…${p.owner.slice(-6)} · fee ${Number(p.rewardFeeBps)/100}%</div>
-        <div style="margin-top:6px"><span class="stat">⛏ ${p.hashRate} hash</span><span class="stat">👤 ${p.minersActive} miners</span><span class="stat">⚡ ${fmt(p.wattEarned)} WATT earned</span></div></div>`; }
+        <div style="margin-top:6px"><span class="stat">👤 ${p.minersActive} miners</span><span class="stat">⚡ ${fmt(p.wattEarned)} WATT earned</span></div></div>`; }
     box.innerHTML=html;
   }catch(e){ box.innerHTML='<p class="d">Could not load pools: '+((e.shortMessage||e.message)+'').slice(0,80)+'</p>'; }
 }
@@ -212,13 +213,14 @@ $("btnRegister").onclick=async()=>{ if(!signer) return toast("Connect first","er
     tx("Register",c(cur().registry,ABI.registry,true).registerPoolWithNode(name,name,strat,rpc,p2p,fee,0,[0],ov(600000n)),"Registered as host ✓ (100k WATT locked)"); }catch(e){ toast("Register: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
 $("btnCreate").onclick=()=>{ if(!signer) return toast("Connect first","err");
   const name=$("pName").value.trim()||"My Pool", tgt=Number($("pTarget").value), ep=$("pEndpoint").value.trim()||cur().rpc, rf=Math.round(+$("pRewardFee").value||200), wc=Math.round(+$("pWattCut").value||0);
-  tx("Create pool",c(cur().engine,ABI.engine,true).createPool(tgt,ANY_ALGO,rf,wc,name,ep,ov(500000n)),"Pool created ✓ — see Browse"); };
+  tx("Create pool",c(cur().engine,ABI.engine,true).createPool([tgt],ANY_ALGO,rf,wc,name,ep,ov(500000n)),"Pool created ✓ — see Browse"); };
 $("btnStart").onclick=async()=>{ if(!signer) return toast("Connect first","err");
   const rig=$("mRig").value, pool=$("mPool").value, w=$("mWatt").value; if(rig===""||pool===""||!w) return toast("Fill rig id, pool id, WATT","err");
   const amt=ethers.parseEther(w);
   try{ const ok=await rc(cur().rigNft,ABI.rig).isApprovedForAll(addr,cur().engine); if(!ok){ toast("Approve rigs…"); const a=await c(cur().rigNft,ABI.rig,true).setApprovalForAll(cur().engine,true,ov(80000n)); await a.wait(); }
     await ensureAllowance(cur().watt,cur().engine,amt);
-    tx("Start mining",c(cur().engine,ABI.engine,true).startMining(cur().rigNft,BigInt(rig),amt,BigInt(pool),ov(400000n)),"Rig pointed at pool ✓"); }catch(e){ toast("Start: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
+    let tid=0; try{ tid=Number((await rc(cur().engine,ABI.engine).poolTargets(BigInt(pool)))[0]); }catch(e){}
+    tx("Start mining",c(cur().engine,ABI.engine,true).startMining(cur().rigNft,BigInt(rig),amt,BigInt(pool),BigInt(tid),ov(400000n)),"Rig pointed at pool ✓"); }catch(e){ toast("Start: "+((e.shortMessage||e.message)+"").slice(0,100),"err"); } };
 $("btnPending").onclick=async()=>{ const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
   try{ const p=await rc(cur().engine,ABI.engine).pendingRewards(cur().rigNft,BigInt(rig)); $("ePending").textContent=fmt(p,4)+" pending"; }catch(e){ toast("No data for that rig","err"); } };
 $("btnClaim").onclick=()=>{ if(!signer) return toast("Connect first","err"); const rig=$("eRig").value; if(rig==="") return toast("Enter a rig id","err");
