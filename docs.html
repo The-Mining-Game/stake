@@ -1,0 +1,1611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Docs — The Mining Game</title>
+<meta name="description" content="The complete manual for The Mining Game: claim legacy WATT on Polygon, Altcoinchain and BSV, unstake and migrate v1 NFTs, play the game, mine, host a 100k-WATT pool, and use every bridge.">
+<link rel="icon" href="https://stake.mining-game.wattxchange.app/favicon.ico">
+<style>
+  :root{
+    --bg:#0a0f0c; --panel:#0f1712; --panel2:#12211a; --line:#1d3327; --line2:#274634;
+    --ink:#e8ffe9; --muted:#8fb69c; --dim:#5f8570;
+    --acc:#39ff88; --acc2:#00d15a; --gold:#ffd166; --warn:#ffcc55; --bad:#ff5d6c;
+    --alt:#ff9d4d; --pol:#a06bff; --wtx:#39ff88; --bsv:#ffd166;
+    --shadow:0 18px 50px rgba(0,0,0,.55);
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --nav:264px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;scroll-padding-top:78px}
+  body{margin:0;background:
+     radial-gradient(1200px 520px at 84% -10%, rgba(57,255,136,.10), transparent 62%),
+     radial-gradient(900px 460px at 6% 106%, rgba(0,209,90,.06), transparent 60%),
+     var(--bg);
+     color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;-webkit-text-size-adjust:100%}
+  a{color:var(--acc);text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  /* ---------- top bar ---------- */
+  .top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
+       padding:10px 18px;background:rgba(10,15,12,.9);backdrop-filter:blur(10px);
+       border-bottom:1px solid var(--line)}
+  .top .brand{display:flex;align-items:center;gap:10px;min-width:0;text-decoration:none;color:var(--ink)}
+  .top img{height:28px;width:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+  .top .tag{font:700 11px/1 var(--mono);letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+            border:1px solid var(--line2);border-radius:999px;padding:5px 9px}
+  .top .grow{flex:1}
+  .top .links{display:flex;gap:14px;font-size:13px;font-weight:600}
+  .top .links a{color:var(--muted)}
+  .top .links a:hover{color:var(--acc);text-decoration:none}
+  .burger{display:none;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+          border-radius:10px;width:40px;height:36px;font-size:16px;cursor:pointer}
+
+  /* ---------- layout ---------- */
+  .shell{display:grid;grid-template-columns:var(--nav) minmax(0,1fr);gap:34px;
+         max-width:1220px;margin:0 auto;padding:26px 22px 90px}
+  nav.toc{position:sticky;top:66px;align-self:start;max-height:calc(100vh - 86px);overflow:auto;
+          padding-right:8px;font-size:13.5px}
+  nav.toc::-webkit-scrollbar{width:8px}
+  nav.toc::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
+  nav.toc .grp{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+               color:var(--dim);margin:20px 0 8px;padding-left:11px}
+  nav.toc .grp:first-child{margin-top:0}
+  nav.toc a{display:block;color:var(--muted);padding:5px 11px;border-left:2px solid transparent;
+            border-radius:0 8px 8px 0}
+  nav.toc a:hover{color:var(--ink);background:rgba(57,255,136,.05);text-decoration:none}
+  nav.toc a.on{color:var(--acc);border-left-color:var(--acc);background:rgba(57,255,136,.07);font-weight:600}
+  main{min-width:0}
+
+  /* ---------- content ---------- */
+  .hero{border:1px solid var(--line);border-radius:20px;padding:26px 24px;margin:0 0 34px;
+        background:linear-gradient(180deg,var(--panel),#0b120e);box-shadow:var(--shadow)}
+  .hero h1{font-size:31px;line-height:1.15;margin:0 0 10px;letter-spacing:-.4px}
+  .hero p{color:var(--muted);margin:0 0 6px;max-width:66ch}
+  .hero .stamp{font:600 11px var(--mono);letter-spacing:.12em;color:var(--dim);text-transform:uppercase;margin-top:14px}
+
+  section{scroll-margin-top:78px;margin:0 0 12px;padding:0 0 8px}
+  h2{font-size:23px;margin:46px 0 6px;letter-spacing:-.2px;padding-top:14px;border-top:1px solid var(--line)}
+  h2:first-of-type{margin-top:0;border-top:0;padding-top:0}
+  h3{font-size:17px;margin:30px 0 6px;color:var(--ink)}
+  h4{font-size:14.5px;margin:22px 0 4px;color:var(--acc);font-family:var(--mono);font-weight:700;
+     letter-spacing:.02em}
+  p{margin:10px 0;max-width:74ch}
+  .lead{color:var(--muted);font-size:15.5px;max-width:70ch}
+  ul,ol{margin:10px 0;padding-left:22px;max-width:74ch}
+  li{margin:6px 0}
+  li>ul,li>ol{margin:4px 0}
+  code{font-family:var(--mono);font-size:.88em;background:var(--panel2);border:1px solid var(--line);
+       border-radius:6px;padding:1.5px 5px;color:#c8ffdd;word-break:break-word}
+  pre{background:#060b08;border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+      overflow:auto;margin:14px 0;font:12.8px/1.65 var(--mono);color:#bfe8cf}
+  pre code{background:none;border:0;padding:0;color:inherit;font-size:inherit}
+  b,strong{color:#fff}
+  hr{border:0;border-top:1px solid var(--line);margin:34px 0}
+
+  /* callouts */
+  .note{border:1px solid;border-radius:14px;padding:12px 15px;margin:16px 0;font-size:14px;
+        line-height:1.6;max-width:74ch}
+  .note .t{font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;display:block;margin-bottom:6px}
+  .note p:first-child{margin-top:0}.note p:last-child{margin-bottom:0}
+  .note.tip{border-color:rgba(57,255,136,.34);background:rgba(57,255,136,.06)}
+  .note.tip .t{color:var(--acc)}
+  .note.warn{border-color:rgba(255,204,85,.38);background:rgba(255,204,85,.07)}
+  .note.warn .t{color:var(--warn)}
+  .note.bad{border-color:rgba(255,93,108,.4);background:rgba(255,93,108,.07)}
+  .note.bad .t{color:var(--bad)}
+  .note.info{border-color:var(--line2);background:var(--panel2)}
+  .note.info .t{color:var(--muted)}
+
+  /* tables */
+  .tw{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+  th,td{text-align:left;padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{background:var(--panel2);color:var(--muted);font:700 10.5px/1.4 var(--mono);
+           letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover{background:rgba(57,255,136,.035)}
+  td code{font-size:12px;background:none;border:0;padding:0;color:#a9e9c4}
+  .addr{font-family:var(--mono);font-size:11.8px;color:#a9e9c4;word-break:break-all}
+
+  /* step lists */
+  ol.steps{list-style:none;padding:0;counter-reset:s;max-width:74ch}
+  ol.steps>li{counter-increment:s;position:relative;padding:2px 0 16px 42px;margin:0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:0;top:2px;width:27px;height:27px;
+      border-radius:50%;background:var(--panel2);border:1px solid var(--line2);color:var(--acc);
+      display:grid;place-items:center;font:700 12px var(--mono)}
+  ol.steps>li>b:first-child,ol.steps>li>strong:first-child{display:block;color:#fff;margin-bottom:2px}
+
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:12px;margin:18px 0}
+  .cardl{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+         padding:14px 15px;color:var(--ink)}
+  .cardl:hover{border-color:var(--line2);background:var(--panel2);text-decoration:none}
+  .cardl .k{font:700 10.5px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);
+            display:block;margin-bottom:5px}
+  .cardl .n{font-weight:700;font-size:14.5px;display:block}
+  .cardl .d{color:var(--muted);font-size:12.8px;margin-top:4px;display:block;line-height:1.5}
+
+  .pill{display:inline-block;font:700 10.5px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;
+        border-radius:999px;padding:4px 9px;border:1px solid var(--line2);color:var(--muted);
+        vertical-align:middle;margin-left:7px}
+  .pill.live{color:var(--acc);border-color:rgba(57,255,136,.4);background:rgba(57,255,136,.08)}
+  .pill.legacy{color:var(--warn);border-color:rgba(255,204,85,.35);background:rgba(255,204,85,.07)}
+  .pill.soon{color:var(--dim)}
+  .c-alt{color:var(--alt)}.c-pol{color:var(--pol)}.c-wtx{color:var(--wtx)}.c-bsv{color:var(--bsv)}
+
+  .kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);
+      border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:16px 0}
+  .kv>div{background:var(--panel);padding:12px 14px}
+  .kv .k{font:700 10px/1.4 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+  .kv .v{font-size:17px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+
+  footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 0 0;color:var(--dim);font-size:12.5px}
+  footer a{color:var(--muted)}
+
+  @media (max-width:900px){
+    .shell{grid-template-columns:1fr;gap:0;padding:18px 16px 70px}
+    nav.toc{position:fixed;inset:52px 0 auto 0;max-height:calc(100vh - 52px);background:var(--bg);
+            border-bottom:1px solid var(--line);padding:14px 18px 22px;display:none;z-index:39}
+    nav.toc.open{display:block}
+    .burger{display:block}
+    .top .links{display:none}
+    .hero h1{font-size:25px}
+    h2{font-size:20px}
+    body{font-size:14.6px}
+  }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <a class="brand" href="#top">
+    <img src="https://stake.mining-game.wattxchange.app/mg-logo.png" alt="The Mining Game" onerror="this.style.display='none'">
+    <span class="tag">Docs</span>
+  </a>
+  <div class="grow"></div>
+  <div class="links">
+    <a href="https://mining-game.wattxchange.app/">Play</a>
+    <a href="https://stake.mining-game.wattxchange.app/">Stake</a>
+    <a href="https://stake.mining-game.wattxchange.app/pools.html">Pools</a>
+    <a href="https://stake.mining-game.wattxchange.app/bridge.html">Bridge</a>
+    <a href="https://wattxchain.org/">WATTx</a>
+  </div>
+  <button class="burger" id="burger" aria-label="Menu">☰</button>
+</div>
+
+<div class="shell" id="top">
+<nav class="toc" id="toc">
+  <div class="grp">Start here</div>
+  <a href="#overview">What this is</a>
+  <a href="#map">The map — every address</a>
+  <a href="#setup">Set up your wallet</a>
+
+  <div class="grp">Legacy (v1) holders</div>
+  <a href="#v1">The v1 era, briefly</a>
+  <a href="#claim-watt">1 · Claim staked WATT (POL + ALT)</a>
+  <a href="#claim-bsv">2 · Claim on Bitcoin SV</a>
+  <a href="#unstake-nfts">3 · Approve &amp; unstake v1 NFTs</a>
+  <a href="#migrate">4 · Migrate everything to v2</a>
+
+  <div class="grp">The game</div>
+  <a href="#economy">The v3 economy</a>
+  <a href="#play">Playing the game</a>
+  <a href="#components">Getting components</a>
+  <a href="#staking">Powered-off staking</a>
+  <a href="#mining">Mining for real coins</a>
+
+  <div class="grp">Hosting</div>
+  <a href="#pool-host">Host a pool — 100k WATT</a>
+  <a href="#pool-run">Running your pool</a>
+  <a href="#pool-close">Closing a pool</a>
+
+  <div class="grp">Bridges</div>
+  <a href="#bridges">The five rails</a>
+  <a href="#bridge-oft">WATT omnichain (LayerZero)</a>
+  <a href="#bridge-wtx">WATT ⇄ WTX desk</a>
+  <a href="#bridge-evm">WATT cross-EVM</a>
+  <a href="#bridge-alt">ALT omnichain</a>
+  <a href="#bridge-bsv">BSV attested bridge</a>
+  <a href="#routes">Route finder</a>
+
+  <div class="grp">Reference</div>
+  <a href="#ref-addresses">All contracts</a>
+  <a href="#ref-items">Component catalogue</a>
+  <a href="#ref-targets">Payout targets</a>
+  <a href="#trouble">Troubleshooting</a>
+  <a href="#glossary">Glossary</a>
+</nav>
+
+<main>
+<div class="hero">
+  <h1>The Mining Game — the complete manual</h1>
+  <p class="lead">Everything from rescuing a 2022 position on the original site, through the
+  v2 migration, to building rigs, mining real coins, hosting a pool with 100,000 WATT locked,
+  and moving value across every bridge we run.</p>
+  <p class="lead">Read it top to bottom if you are a legacy holder. Jump to
+  <a href="#play">Playing the game</a> if you are new.</p>
+  <div class="stamp">Live on Polygon · Altcoinchain · WATTxchain · Bitcoin SV</div>
+</div>
+
+<section id="overview">
+<h2>What this is</h2>
+
+<p><b>The Mining Game</b> is an NFT mining simulator that pays in real cryptocurrency. You collect
+component NFTs — cases, processors, GPUs, ASICs, racks — assemble them into rigs, and point those rigs
+at a mining pool. The pool is backed by a real validator, masternode, or staking node somewhere in the
+world; whatever that node actually earns is split among the pool's miners in proportion to their rigs'
+effective power, and paid out on-chain.</p>
+
+<p>Rigs burn <b>WATT</b> as fuel while they mine. Components that are <i>not</i> mining can be staked
+powered-off to mint WATT by their stake weight. That circle — burn to mine, stake to earn — is the whole
+economy.</p>
+
+<div class="note info">
+  <span class="t">History in one paragraph</span>
+  <p>The game launched in 2022 on Polygon and Altcoinchain. In 2023 a flaw in the free-mint gate
+  (<code>balanceOf(msg.sender, 1) == 0</code> — a <i>mutable</i> check you could reset by transferring the
+  case away) let one player mint thousands of free Gaming PCs, and the original staking contract
+  <i>minted</i> WATT on withdrawal with no finite pool, so each duplicate became a permanent WATT
+  emitter. Then the founder passed away, <code>api.mining.game</code> lapsed, and the front-end — which
+  walked that domain for its rig list on every render — died with it. Nothing on-chain was lost. This
+  documentation covers the rebuilt stack: the original contracts are still readable and your positions
+  are still withdrawable, and a fixed v2/v3 economy runs alongside them.</p>
+</div>
+
+<h3>The three eras, and what you own in each</h3>
+<div class="tw"><table>
+<thead><tr><th>Era</th><th>Token</th><th>Components</th><th>Where it runs</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td><b>v1 / classic</b> (2022)</td><td>WATT v1 (ERC-20)</td><td>MiningGame ERC-1155, ids 1–5</td><td>Polygon 137, Altcoinchain 2330</td><td><span class="pill legacy">Withdraw only</span></td></tr>
+<tr><td><b>v2</b> (2026)</td><td>WATT v2 (ERC-20, role-gated mint, LayerZero OFT)</td><td>—</td><td>Polygon, ALT, WATTxchain</td><td><span class="pill live">Live</span></td></tr>
+<tr><td><b>v3</b> (2026)</td><td>WATT v2</td><td>MiningGameItems ERC-1155, 36 items</td><td>Polygon, ALT, WATTxchain</td><td><span class="pill live">Live</span></td></tr>
+</tbody></table></div>
+
+<p>WATT v1 and WATT v2 are <b>the same money at a 1:1 rate</b> — v2 exists because v1 has three
+uncapped issuance paths baked into an immutable contract and a deployer key nobody can reach. v1
+components and v3 components are likewise 1:1, id for id. Nothing you hold is stranded; every path is
+documented below.</p>
+</section>
+
+<section id="map">
+<h2>The map — every site and what it does</h2>
+
+<div class="grid">
+  <a class="cardl" href="https://mining-game.wattxchange.app/"><span class="k">Play</span><span class="n">mining-game.wattxchange.app</span><span class="d">The 3D game. Build rigs, run the garage, open the Pool Hub, mine. Installable as a PWA.</span></a>
+  <a class="cardl" href="https://stake.mining-game.wattxchange.app/"><span class="k">Stake &amp; shop</span><span class="n">stake.mining-game…/</span><span class="d">Stake components powered-off, claim WATT, stake WATT, buy components, migrate classic NFTs.</span></a>
+  <a class="cardl" href="https://stake.mining-game.wattxchange.app/pools.html"><span class="k">Pools</span><span class="n">…/pools.html</span><span class="d">Browse pools, register as a host with 100k WATT, create pools, point rigs, claim, set payout addresses.</span></a>
+  <a class="cardl" href="https://stake.mining-game.wattxchange.app/bridge.html"><span class="k">Bridge</span><span class="n">…/bridge.html</span><span class="d">WATT v2 between Altcoinchain and Polygon over our own LayerZero mesh. Burn-and-mint, 1:1.</span></a>
+  <a class="cardl" href="https://stake.mining-game.wattxchange.app/swap.html"><span class="k">Migrate</span><span class="n">…/swap.html</span><span class="d">WATT v1 → WATT v2, 1:1, one transaction, same chain.</span></a>
+  <a class="cardl" href="https://stake.mining-game.wattxchange.app/pool.html"><span class="k">Liquidity</span><span class="n">…/pool.html</span><span class="d">Seed the WATT v2 / wALT pool on SwapinDEX (Altcoinchain).</span></a>
+  <a class="cardl" href="https://bridge.wattxchange.app/"><span class="k">Bridge desk</span><span class="n">bridge.wattxchange.app</span><span class="d">WATT ⇄ native WTX, WATT cross-EVM, live quotes and multi-hop routing.</span></a>
+  <a class="cardl" href="https://the-mining-game.github.io/"><span class="k">Legacy site</span><span class="n">the-mining-game.github.io</span><span class="d">The original v1 dapp, revived. Inventory, NFT-staking, Token-staking, Multi-send, Claim-BSV.</span></a>
+  <a class="cardl" href="https://the-mining-game.github.io/bitcoinSV-ALT_claim/"><span class="k">BSV claim</span><span class="n">…/bitcoinSV-ALT_claim/</span><span class="d">Prove your EVM holdings with a signature, receive WATT and rigs as BSV-21 tokens and ordinals.</span></a>
+  <a class="cardl" href="https://multisig.wattxchange.app/"><span class="k">Governance</span><span class="n">multisig.wattxchange.app</span><span class="d">The 2-of-2 and 2-of-3 multisigs that own WATT v2, the item collection and the shop.</span></a>
+  <a class="cardl" href="https://nft.wattxchange.app/genesis.html"><span class="k">100k WATT Club</span><span class="n">nft.wattxchange.app</span><span class="d">The fully on-chain omnichain badge for pool hosts, plus the Binary Maker.</span></a>
+  <a class="cardl" href="https://wtx-explorer.wattxchange.app"><span class="k">Explorer</span><span class="n">wtx-explorer.wattxchange.app</span><span class="d">WATTxchain blocks, transactions, addresses and contracts.</span></a>
+</div>
+
+<div class="note tip">
+  <span class="t">Bookmark two things</span>
+  <p><a href="https://stake.mining-game.wattxchange.app/">stake.mining-game.wattxchange.app</a> is where
+  every wallet action lives. <a href="https://mining-game.wattxchange.app/">mining-game.wattxchange.app</a>
+  is the game itself. Everything else is reachable from those two.</p>
+</div>
+</section>
+
+<section id="setup">
+<h2>Set up your wallet</h2>
+
+<p>You need one EVM wallet — MetaMask, Rabby, Brave Wallet, Phantom, anything that speaks EIP-1193.
+The same address works on Polygon and Altcoinchain. WATTxchain and Bitcoin SV are different (see below).</p>
+
+<h3>Networks</h3>
+<div class="tw"><table>
+<thead><tr><th>Network</th><th>Chain ID</th><th>Currency</th><th>RPC</th></tr></thead>
+<tbody>
+<tr><td><b class="c-pol">Polygon</b></td><td>137 <code>0x89</code></td><td>POL</td><td><code>https://polygon-bor-rpc.publicnode.com</code></td></tr>
+<tr><td><b class="c-alt">Altcoinchain</b></td><td>2330 <code>0x91a</code></td><td>ALT</td><td><code>https://rpc.wattxchange.app</code></td></tr>
+<tr><td><b class="c-wtx">WATTxchain</b></td><td>22356 <code>0x5754</code></td><td>WTX</td><td><code>https://rpc-wtx.wattxchange.app</code></td></tr>
+</tbody></table></div>
+
+<div class="note warn">
+  <span class="t">Polygon public RPCs rot fast</span>
+  <p><code>polygon-rpc.com</code>, <code>rpc.ankr.com/polygon</code> and <code>polygon.llamarpc.com</code>
+  are all dead or key-gated now — a stale RPC in your wallet reads as "the site is broken" because every
+  contract call silently returns nothing. Working, CORS-enabled, no key:
+  <code>polygon-bor-rpc.publicnode.com</code>, <code>polygon.drpc.org</code>, <code>1rpc.io/matic</code>.
+  Every page here falls back through that list and then to your wallet's own RPC.</p>
+</div>
+
+<div class="note bad">
+  <span class="t">Brave users — read this before you report a bug</span>
+  <p>Brave Shields blocks third-party script CDNs. Every page on
+  <code>stake.mining-game.wattxchange.app</code> now serves its libraries first-party from
+  <code>/vendor/</code> precisely because of this, but Shields also blocks third-party <i>RPC</i> hosts.
+  If "Connect Wallet" does absolutely nothing — no popup, no error — drop Shields to standard for the
+  site and reload. If component cards show flat images instead of spinning 3D models, that is Brave's
+  fingerprint protection turning off WebGL; the pre-rendered stills are the intended fallback and
+  nothing is broken.</p>
+</div>
+
+<h3>WATTxchain addresses are different</h3>
+<p>WATTxchain is a UTXO chain with an EVM layered on top (Qtum lineage). An Ethereum-derived address is
+<i>valid</i> there but <b>unsignable</b> — the UTXO layer needs a <code>hash160(pubkey)</code> address,
+not <code>keccak(pubkey)[12:]</code>. Sending an NFT to your MetaMask address on WATTxchain freezes it
+forever. Use the WATTx wallet extension, the desktop wallet, or the in-game HD wallet, which all derive
+the correct form.</p>
+
+<h3>Bitcoin SV</h3>
+<p>For the BSV claim you need an ordinals-capable BSV wallet — <a href="https://yours.org">Yours Wallet</a>
+is what we test against. Claim to its <b>ordinals address</b>, never a payment address and never an
+exchange deposit address: rig ordinals sent to an exchange are gone.</p>
+</section>
+<section id="v1">
+<h2>The v1 era, briefly</h2>
+
+<p>If you played before 2026, everything you own is in one of five places:</p>
+
+<div class="tw"><table>
+<thead><tr><th>What</th><th>Where it is</th><th>How to get it out</th></tr></thead>
+<tbody>
+<tr><td>WATT v1 in your wallet</td><td>Polygon <code>0xE960d5…5839</code> · ALT <code>0x664514…4698</code></td><td><a href="#migrate">Migrate to v2</a> (optional but recommended)</td></tr>
+<tr><td>WATT v1 <b>staked</b> in the token pool</td><td>Polygon <code>0x5C3359…c692</code> — holds <b>768,577 WATT</b></td><td><a href="#claim-watt">End your stake</a></td></tr>
+<tr><td>LP tokens staked</td><td>Polygon <code>0x672654…39d3</code> (WPOL/WATT UNI-V2)</td><td><a href="#claim-watt">End your LP stake</a></td></tr>
+<tr><td>Components <b>staked</b> in the NFT pool</td><td>Polygon <code>0xcbfcA6…5275</code> (3,102 held) · ALT <code>0xe46304…A7b1</code> (4,097 held)</td><td><a href="#unstake-nfts">Unstake per deposit</a></td></tr>
+<tr><td>Components in your wallet</td><td>Polygon <code>0x970a8b…9728</code> · ALT <code>0xf9670e…Ffb2</code></td><td><a href="#migrate">Swap to v3</a>, or <a href="#claim-bsv">claim on BSV</a></td></tr>
+</tbody></table></div>
+
+<div class="note warn">
+  <span class="t">One address is wrong in the old front-end</span>
+  <p>The classic UI hardcodes the NFT collection as <code>0x970a8b10…</code> on <i>both</i> chains.
+  That is correct on Polygon only. The Altcoinchain collection is
+  <code>0xf9670e5D46834561813CA79854B3d7147BBbFfb2</code> — <code>0x970a8b…</code> also exists on ALT
+  (it shares a deployer nonce) but is nearly empty, so an ALT wallet can look empty when it is not.
+  The rebuilt pages on <code>stake.mining-game.wattxchange.app</code> use the right one.</p>
+</div>
+</section>
+
+<section id="claim-watt">
+<h2>1 · Claim staked WATT on Polygon and Altcoinchain</h2>
+
+<p class="lead">Ending a v1 token stake returns your <b>principal in full</b> plus whatever interest the
+original owner wallet can still cover. Nothing is locked; the contracts are immutable and still work.</p>
+
+<h3>Where token staking actually exists</h3>
+<div class="kv">
+  <div><div class="k">Polygon 137</div><div class="v c-pol">Yes</div></div>
+  <div><div class="k">Altcoinchain 2330</div><div class="v" style="color:var(--dim)">None deployed</div></div>
+</div>
+<p>We verified this on-chain by enumerating every contract the original deployer
+<code>0x4B6123e6…bf25</code> created (contract addresses from <code>CREATE</code> are deterministic, so
+nonce 0 through 400 can be walked and code-checked one by one). <b>There is no WATT token-staking
+contract on Altcoinchain.</b> The old UI's Altcoinchain config reuses Polygon's addresses, which have no
+code there — that is why the Token-staking page shows nothing on ALT. Your ALT WATT v1 is simply in your
+wallet; skip straight to <a href="#migrate">migration</a>. Altcoinchain <i>does</i> have NFT staking —
+see <a href="#unstake-nfts">step 3</a>.</p>
+
+<h3>The Polygon WATT stake — live parameters</h3>
+<div class="tw"><table>
+<thead><tr><th>Parameter</th><th>Value</th><th>What it means for you</th></tr></thead>
+<tbody>
+<tr><td>Contract</td><td class="addr">0x5C33598c51785122dF275A1f4b4d0f1ab8ecc692</td><td>Holds 768,577.57 WATT v1 of staker principal</td></tr>
+<tr><td><code>maturity</code></td><td><b>30 seconds</b></td><td>Every stake older than half a minute is matured — no penalty applies to anyone</td></tr>
+<tr><td><code>penalization</code></td><td>30 %</td><td>Only charged if you end inside the 30-second window. In practice: never</td></tr>
+<tr><td><code>interest_rate</code></td><td>30 % / year</td><td>Simple interest on elapsed seconds, paid from the owner wallet</td></tr>
+<tr><td>Owner wallet balance</td><td>39,317 WATT</td><td>The interest budget. When it is empty, interest pays 0 — <b>principal is unaffected</b></td></tr>
+</tbody></table></div>
+
+<h4>How to end a stake</h4>
+<ol class="steps">
+  <li><b>Open the classic Token-staking page.</b>
+      <a href="https://stake.mining-game.wattxchange.app/token-staking/">stake.mining-game.wattxchange.app/token-staking/</a>
+      (mirror: <a href="https://the-mining-game.github.io/token-staking/">the-mining-game.github.io/token-staking/</a>).</li>
+  <li><b>Connect on Polygon.</b> Chain 137. The page lists your ledger — one row per stake you ever
+      started, each with its own index, amount, start time and accrued gain.</li>
+  <li><b>End each row you want back.</b> The button calls <code>end(index)</code>. One transaction per
+      row; there is no batch. Rows already ended are marked and cannot be ended twice.</li>
+  <li><b>Check what arrived.</b> A matured <code>end()</code> transfers your principal from the contract
+      and, separately, pulls interest from the owner wallet. If the owner's allowance or balance is short
+      the contract sets interest to zero and still pays your principal — the transaction does not revert.</li>
+</ol>
+
+<div class="note tip">
+  <span class="t">If the page will not render your ledger</span>
+  <p>You can always call the contract directly from a block explorer or from
+  <a href="https://polygonscan.com/address/0x5C33598c51785122dF275A1f4b4d0f1ab8ecc692#writeContract">Polygonscan's Write Contract tab</a>.
+  Read <code>ledger_length(yourAddress)</code> to get the count, <code>ledger(yourAddress, i)</code> to see
+  each record (<code>from</code>, <code>amount</code>, <code>gain</code>, <code>penalization</code>,
+  <code>to</code>, <code>ended</code>), <code>get_gains(yourAddress, i)</code> for the current interest,
+  then write <code>end(i)</code>. That path needs no front-end at all.</p>
+</div>
+
+<h3>The LP stake (Polygon only)</h3>
+<p>A second contract, <code>0x672654aBeF98d6b1B78c34368072fF294D0339d3</code>, stakes the
+<b>WPOL / WATT v1 Uniswap-V2 pair token</b> <code>0xEC54584a…9Bef</code> and pays its interest in WATT.
+Its parameters are different and they matter:</p>
+<ul>
+  <li><b>maturity 30 days</b> — genuinely enforced.</li>
+  <li><b>penalization 30 %</b> — end before 30 days and you lose 30 % of your LP tokens to the owner wallet, and earn nothing. Check your start date first.</li>
+  <li><b>interest 0 % on the LP token, 125 % / year in WATT</b> — again paid from the owner wallet, and again zeroed rather than reverting if that wallet is short.</li>
+</ul>
+<p>The flow is identical: <code>end(index)</code> per row, from the Token-staking page or the explorer.</p>
+
+<div class="note bad">
+  <span class="t">Known v1 risk, disclosed</span>
+  <p>Both staking contracts expose an owner-only <code>set(lower, maturity, rate, penalization)</code>
+  that rewrites the terms of <i>already open</i> stakes — <code>end()</code> reads the <i>current</i>
+  values, not the ones in force when you started. An owner could set maturity to the maximum and
+  penalization to 100 % and take every open deposit. The owner is the original deployer
+  <code>0x4B6123e6…bf25</code>, whose key is not in anyone's hands, so this has never been exercised and
+  the contracts have been static for years. It is still the correct reason to end an old stake rather
+  than leave it sitting.</p>
+</div>
+</section>
+
+<section id="claim-bsv">
+<h2>2 · Claim your holdings on Bitcoin SV</h2>
+
+<p class="lead">Every rig model, the WATT logo and the full component art are inscribed permanently as
+1Sat Ordinals on Bitcoin SV, and WATT plus the five classic rigs exist there as BSV-21 tokens. A
+snapshot of the EVM chains lets you claim the BSV copies of what you held.</p>
+
+<h3>Why this exists</h3>
+<p>The v1 front-end died because it read its rig list from <code>api.mining.game</code>, a web server on a
+domain that lapsed. Putting the art on-chain removes that class of failure entirely: 28 MB of GLB models
+cost about $0.26 to inscribe once on BSV and are served forever by any ordinals gateway. The same 28 MB
+as EVM calldata would be roughly 483 million gas — impossible.</p>
+
+<h3>Why you cannot just be airdropped</h3>
+<p>A BSV address is derived differently from an EVM address; there is no way to compute the BSV address of
+a person who holds tokens at <code>0xabc…</code>. So the claim is a <b>signature proof</b>: you sign a
+message with your EVM key that names your BSV address, and the service releases from the treasury to the
+address you signed for. A forged signature recovers to the wrong address and is rejected; a redirected
+payout changes the message and is rejected.</p>
+
+<h4>How to claim</h4>
+<ol class="steps">
+  <li><b>Unstake your components first.</b> Staked rigs are owned by the staking <i>contract</i>, so the
+      snapshot credits the contract, not you. Go do <a href="#unstake-nfts">step 3</a>, then come back.
+      (The Altcoinchain snapshot was taken at <code>alt@block-6892759</code>; the Polygon one at
+      <code>polygon@block-91012890</code>, 6,645 holders.)</li>
+  <li><b>Open the claim page.</b>
+      <a href="https://the-mining-game.github.io/bitcoinSV-ALT_claim/">the-mining-game.github.io/bitcoinSV-ALT_claim/</a>
+      or the <a href="https://stake.mining-game.wattxchange.app/claim/">Claim-BSV tab</a> on the classic site.
+      The release backend is passed as <code>?api=&lt;url&gt;</code> and remembered in local storage.</li>
+  <li><b>Connect your EVM wallet</b> and read your entitlement — WATT plus a quantity of each rig id,
+      straight from the baked-in snapshot. This step is entirely client-side.</li>
+  <li><b>Paste your BSV ordinals address.</b> In Yours Wallet this is the <i>ordinals</i> address, not the
+      payment ("bsv") address. Never use an exchange deposit address.</li>
+  <li><b>Sign the claim message</b> with <code>personal_sign</code>. The message binds the snapshot id,
+      your lower-cased EVM address and your BSV address together — change any one of them and the
+      signature no longer verifies.</li>
+  <li><b>Submit.</b> The service verifies the signature recovers to an address <i>in the snapshot</i>,
+      checks the claimed-ledger so nobody claims twice, and releases BSV-21 WATT and rig tokens from the
+      treasury. WATT converts 18-decimal EVM → 8-decimal BSV at the same face value; rig quantities are
+      preserved exactly.</li>
+</ol>
+
+<h3>What you receive</h3>
+<div class="tw"><table>
+<thead><tr><th>Asset</th><th>BSV-21 token id</th><th>Supply</th></tr></thead>
+<tbody>
+<tr><td><b>WATT</b> (8 decimals)</td><td class="addr">b47c7e9b608d0b7c7391462fe264eecdc03f248ab690e3b51a4e643135dc5ff9_0</td><td>10,000,000</td></tr>
+<tr><td>id 1 · Gaming PC <code>PCCASE</code></td><td class="addr">5b30beb03f43e48f0bca8b01c65a4fa53c9a458a1cdf02c7bff6374f6980d1bb_0</td><td>20,000</td></tr>
+<tr><td>id 2 · Genesis Badge <code>GENESIS</code></td><td class="addr">5954fbacf0e2dd7a60afb28eab433c258a067b2551860bdf30677c1b46d88688_0</td><td>200</td></tr>
+<tr><td>id 3 · XL1 Processor <code>XL1CPU</code></td><td class="addr">48506a5deb8169c4b230e3167b052f9997df3022dafd990b5661c6e210f60005_0</td><td>20,000</td></tr>
+<tr><td>id 4 · TX120 GPU <code>TX120</code></td><td class="addr">14f2da63b6fe025953e5f590e3a468783e7fe13d65f5218d335186d4ea3b2bf4_0</td><td>12,000</td></tr>
+<tr><td>id 5 · GP50 GPU <code>GP50</code></td><td class="addr">2cb10dd66204ad0938575fb31bfac8ca010eee9310f1537d37c9759208cfffe6_0</td><td>8,000</td></tr>
+</tbody></table></div>
+
+<div class="note info">
+  <span class="t">You pay the indexer fee</span>
+  <p>Minting and claiming are free of charge from us, but on BSV every BSV-21 transfer needs a small
+  payment (~1,000 satoshis) to the token's fund address so the GorillaPool indexer will validate it. Our
+  tooling appends that output automatically. It is a few hundredths of a cent; it is not a fee we collect.</p>
+</div>
+
+<div class="note warn">
+  <span class="t">Two BSV quirks worth knowing</span>
+  <p><b>Gateways 404 until the transaction is mined</b>, not merely broadcast — a fresh inscription looks
+  missing for a block or two. And the GP50 token's on-chain <code>icon</code> field points at a dead
+  inscription from a broadcast that reported success but never landed; the art you actually see comes
+  from our origins file, which points at the good re-inscription
+  <code>9215066c…b849_0</code>. Cosmetic, baked into the deploy, not worth a token redeploy.</p>
+</div>
+</section>
+<section id="unstake-nfts">
+<h2>3 · Approve and unstake your v1 NFTs</h2>
+
+<p class="lead">Your classic components may be escrowed in the old NFT staking contract. Getting them
+back is a two-step approve-then-unstake, and there is one trap that makes the obvious button fail.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Chain</th><th>Classic collection (ERC-1155)</th><th>NFT staking contract</th><th>Escrowed now</th><th>New stakes</th></tr></thead>
+<tbody>
+<tr><td><b class="c-pol">Polygon 137</b></td><td class="addr">0x970a8b10147e3459d3cbf56329b76ac18d329728</td><td class="addr">0xcbfcA68D10B2ec60a0FB2Bc58F7F0Bfd32CD5275</td><td>3,102 items</td><td><b>Disabled</b> (<code>canStake=false</code>)</td></tr>
+<tr><td><b class="c-alt">Altcoinchain 2330</b></td><td class="addr">0xf9670e5D46834561813CA79854B3d7147BBbFfb2</td><td class="addr">0xe463045318393095F11ed39f1a98332aBCc1A7b1</td><td>4,097 items</td><td>Open</td></tr>
+</tbody></table></div>
+
+<p>Stake weights are identical on both chains and are the authentic v1 values:</p>
+<div class="kv">
+  <div><div class="k">id 1 Gaming PC</div><div class="v">1</div></div>
+  <div><div class="k">id 2 Genesis Badge</div><div class="v">42</div></div>
+  <div><div class="k">id 3 XL1 Processor</div><div class="v">9</div></div>
+  <div><div class="k">id 4 TX120 GPU</div><div class="v">11</div></div>
+  <div><div class="k">id 5 GP50 GPU</div><div class="v">18</div></div>
+</div>
+
+<h4>Unstaking, step by step</h4>
+<ol class="steps">
+  <li><b>Open the classic NFT-staking page.</b>
+      <a href="https://stake.mining-game.wattxchange.app/nft-staking/">stake.mining-game.wattxchange.app/nft-staking/</a>.
+      Connect on the chain your rigs are on.</li>
+  <li><b>Approve the collection — once per chain.</b> ERC-1155 has no per-token allowance; the staking
+      contract needs <code>setApprovalForAll(staker, true)</code> on the collection before it can move
+      anything on your behalf. You did this when you first staked, but if you switched wallets or chains
+      you will need it again. Read <code>isApprovedForAll(you, staker)</code> to check.</li>
+  <li><b>Withdraw rewards first (optional).</b> <code>withdrawRewards(depositId)</code> per deposit, or
+      <code>getRewardsAmount(depositId)</code> to see what is owed. Do this before unstaking if you want
+      the accrued v1 WATT.</li>
+  <li><b>Unstake per deposit.</b> <code>unstake(depositId)</code> — one call per deposit record. Use
+      <code>getActivityLogs()</code> or the page's list to find your deposit ids.</li>
+  <li><b>Confirm the items are back</b> in your wallet with <code>balanceOf(you, id)</code> on the
+      collection, then head to <a href="#migrate">migration</a> or the <a href="#claim-bsv">BSV claim</a>.</li>
+</ol>
+
+<div class="note bad">
+  <span class="t">Do not use "Unstake all" — it will revert</span>
+  <p><code>unstakeAll()</code> and <code>withdrawAllRewards()</code> loop over the contract's
+  <b>global</b> deposit array, and <code>withdrawAllRewards</code> computes
+  <code>block.timestamp − depositTime − timeLock</code> for <i>every</i> deposit <i>before</i> checking who
+  owns it. Under Solidity 0.8 that subtraction underflows and reverts as soon as one deposit anywhere on
+  the contract is still inside its lock window — which means any user can brick the batch functions for
+  everyone, permanently, just by staking. The same loops are also an unbounded gas DoS at 3,000–4,000
+  deposits. <b>Always unstake one deposit at a time.</b> Per-deposit <code>unstake(id)</code> and
+  <code>withdrawRewards(id)</code> are unaffected and work fine.</p>
+</div>
+
+<div class="note warn">
+  <span class="t">If your garage looks empty in the game</span>
+  <p>Staked components are escrowed — the game reads <code>balanceOf</code> on the collection, which
+  cannot see them. The in-game wallet panel has a <b>STAKED COMPONENTS</b> section that reads your staking
+  positions directly and offers a per-position Unstake, and the game will say so rather than showing you an
+  empty garage. This is also true of the <i>new</i> v3 staker — if you staked everything, you have nothing
+  left to build with.</p>
+</div>
+
+<div class="note info">
+  <span class="t">Stranded items</span>
+  <p>Thirteen items on Polygon (10 × id 1, and 3 each of ids 3/4/5, across two wallets) were sent to the
+  staking contract with a <i>plain transfer</i> instead of <code>stake()</code>. With no deposit record,
+  the contract has no code path that can return them. They are recorded in the snapshot's
+  <code>stranded</code> field and are not credited by default. If this is you, get in touch — crediting
+  them in the BSV claim is a one-flag policy decision, not a technical problem.</p>
+</div>
+</section>
+
+<section id="migrate">
+<h2>4 · Migrate everything to v2</h2>
+
+<p class="lead">Two independent migrations, both 1:1, both one transaction, both on the chain you are
+already on. Neither one custodies anything.</p>
+
+<h3>Why migrate at all</h3>
+<p>WATT v1 (<code>Watt.sol</code>) has three uncapped issuance paths welded into an immutable contract: an
+owner-only <code>mint()</code>, a <code>rewardsMint()</code> callable by any address flagged
+<code>staking</code>, and a <code>rewardsBurn(from, amount)</code> that lets any <code>gaming</code>-flagged
+address burn <b>anyone's</b> balance with no allowance. The constructor flagged the deployer as both and
+never revoked it. That is what let a 2023 exploit inflate supply from a script.</p>
+
+<p>WATT v2 has no owner mint at all. Minting is gated to a <code>MINTER_ROLE</code> allow-list that a
+multisig rotates and cannot itself use; there is no tax, no blacklist, no pause, no transfer limit, and no
+burn-someone-else path. It is also a LayerZero OFT, which is what makes the
+<a href="#bridge-oft">omnichain bridge</a> possible.</p>
+
+<h3>A · WATT v1 → WATT v2</h3>
+<p>Use <a href="https://stake.mining-game.wattxchange.app/swap.html">stake.mining-game.wattxchange.app/swap.html</a>
+(or the <b>WATT</b> tab on the main stake page).</p>
+
+<ol class="steps">
+  <li><b>Pick your chain</b> — Polygon or Altcoinchain. The migrator is per-chain; v1 on ALT becomes v2 on ALT.</li>
+  <li><b>Approve v1</b> for the <code>WattSwap</code> contract. The page checks your existing allowance
+      first, so a repeat migration skips this.</li>
+  <li><b>Call <code>migrate(amount)</code>.</b> Your v1 is transferred to <code>0x…dEaD</code> and the
+      same amount of v2 is minted to you. The contract measures the <i>actual balance delta</i> at the
+      dead address rather than trusting the requested amount, so a fee-on-transfer token could never
+      over-mint. v2 can never out-issue v1 because every mint is preceded by a burn.</li>
+</ol>
+
+<div class="tw"><table>
+<thead><tr><th>Chain</th><th>WATT v1</th><th>WATT v2</th><th>WattSwap migrator</th></tr></thead>
+<tbody>
+<tr><td><b class="c-pol">Polygon</b></td><td class="addr">0xE960d5076cd3169C343Ee287A2c3380A222e5839</td><td class="addr">0x387693eCEC037C61943404F03c097d2ADA15ae3f</td><td class="addr">0x90a0906a7e01a65f48bd35741681088E3FA6729c</td></tr>
+<tr><td><b class="c-alt">Altcoinchain</b></td><td class="addr">0x6645143e49B3a15d8F205658903a55E520444698</td><td class="addr">0xB7635E386283CAE6FB1A710f19CaA8220beF630D</td><td class="addr">0xdFd07EBEEC3228D14b99f9f39EC71D884ABcbbF4</td></tr>
+<tr><td><b class="c-wtx">WATTxchain</b></td><td class="addr">0x99B5…</td><td class="addr">0xc4603E2582aE320857379819123dFbFd3093dcfa</td><td class="addr">0x704f5eFcDE5EDD87e767Be78ba8FaA6fAb244bad</td></tr>
+</tbody></table></div>
+
+<div class="note tip">
+  <span class="t">Altcoinchain needs legacy gas</span>
+  <p>Altcoinchain's node rejects EIP-1559 fee fields from some wallets with a
+  <code>could not coalesce error</code>. Every page here forces type-0 (legacy <code>gasPrice</code>)
+  transactions on ALT for exactly this reason. If you are calling the contract yourself from a wallet that
+  insists on 1559, switch it to legacy.</p>
+</div>
+
+<h3>B · Classic components → v3 components</h3>
+<p>Use the <b>Migrate old → new</b> tab on
+<a href="https://stake.mining-game.wattxchange.app/">stake.mining-game.wattxchange.app</a>.</p>
+
+<ol class="steps">
+  <li><b>Approve the classic collection</b> for the migrator — one <code>setApprovalForAll</code> per
+      chain. The per-card swap button does this on demand if you skip the explicit button.</li>
+  <li><b>Swap.</b> Your classic tokens are retired and the same ids and amounts are minted on the new
+      <code>MiningGameItems</code> collection. <b>Swap ALL below</b> does every id you hold in one call.</li>
+  <li><b>Ids are preserved.</b> id 1 stays the Gaming PC, id 3 stays the XL1 Processor, and so on. The v3
+      collection simply has 31 more items beyond the original five.</li>
+</ol>
+
+<p>Migrator address, same on Polygon and Altcoinchain:
+<code class="addr">0x97BcC99ff34FA2cde929c97074011E8929F59679</code>.</p>
+
+<div class="note info">
+  <span class="t">Migration deliberately needs nothing from the founder</span>
+  <p>The migrator requires <b>no v1 ownership or admin rights</b> — it works entirely off what any holder
+  can do themselves (approve, then transfer). That was a design constraint, not an accident: the founder's
+  wallet is unreachable, so any design that needed a v1 admin signature would have been dead on arrival.</p>
+</div>
+
+<h3>Order of operations, if you have everything</h3>
+<ol>
+  <li>End your Polygon token/LP stakes → WATT v1 lands in your wallet.</li>
+  <li>Unstake your classic components, one deposit at a time, on each chain.</li>
+  <li><i>Optional:</i> claim the BSV copies now, while everything is in your wallet and matches the snapshot.</li>
+  <li>Migrate WATT v1 → v2.</li>
+  <li>Swap classic components → v3.</li>
+  <li>Stake the v3 components powered-off, or go build a rig.</li>
+</ol>
+</section>
+<section id="economy">
+<h2>The v3 economy</h2>
+
+<p class="lead">Four contracts carry the whole game, and they live at the <b>same address on Polygon and
+Altcoinchain</b> — deployed from one fresh key at nonce 0 on both chains, so <code>CREATE</code> produced
+identical addresses without needing CREATE2.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Contract</th><th>Address (Polygon 137 &amp; ALT 2330)</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><b>MiningGameV3</b></td><td class="addr">0x856f59F1729f6e107EbCD75d21c64AB897c5681f</td><td>Component staking. Powered <b>off</b> mints WATT by stake weight; powered <b>on</b> burns WATT as fuel.</td></tr>
+<tr><td><b>GameConfigV3</b></td><td class="addr">0x50BAb538dB8558deE04314f87d9df33a42c61352</td><td>The entire economy on-chain — 16 traits, upgrade tiers, thermal/wear/cooling/power curves, luck. Multisig-governed.</td></tr>
+<tr><td><b>MiningGameVault</b></td><td class="addr">0x72A716F62aCfF960f6F097B4c7909B2368eD3acA</td><td>Your per-player rewards wallet plus the in-game DEX. UUPS-upgradeable behind an ERC-1967 proxy.</td></tr>
+<tr><td><b>Multisig</b> (2-of-3)</td><td class="addr">0xc49699a99177a058439Ac7E3D2F5aF03d95e1D99</td><td>Owns the config, the item collection and the shop. Anyone can <code>execute()</code> once quorum is reached.</td></tr>
+</tbody></table></div>
+
+<h3>The rest of the economy, per chain</h3>
+<div class="tw"><table>
+<thead><tr><th>Contract</th><th>Polygon 137</th><th>Altcoinchain 2330</th></tr></thead>
+<tbody>
+<tr><td>MiningGameItems (ERC-1155)</td><td class="addr">0x0CDbf4926a8EdFFaa803B96f8fa90B065DE19Eb2</td><td class="addr">0x851fd0205348783444Fc9EDe99Ca2321681EC99b</td></tr>
+<tr><td>ItemShop</td><td class="addr">0xeE6B67c3993884F1b693A4a66e952Bb563463131</td><td class="addr">0x92809C4a46b4D0F11a48BE21fF13202EA56DcEB1</td></tr>
+<tr><td>WattStakingPool</td><td class="addr">0x7E8FC9d7D7588F410E1399aC690F901268B08a8d</td><td class="addr">0xa3f8B04310380cD13Ec85B11420d1fc848af36C4</td></tr>
+<tr><td>WattPriceOracle</td><td class="addr">0x88B6f5BeB2C9430Aef55C6234aC29183655E8B63</td><td class="addr">0x9Ce58737f5221d9Ab81A6eDaAD32f5aDa6d14100</td></tr>
+<tr><td>CaseFreeMint (free Gaming PC)</td><td class="addr">0xc75504Cb57b26041655dDd739414C240Dd628e7a</td><td class="addr">0x91Ae9eDe6016AdF84c643F9Ce5Bb60A9438D792f</td></tr>
+<tr><td>WATT v2 multisig (token admin)</td><td class="addr">0x0f4a9765531bB8f8aa33fB95AeDACD8a660fcBA9</td><td class="addr">0x59bDaFD1D4dC46648204044eB7259eA1F08A9280</td></tr>
+</tbody></table></div>
+
+<h3>Where WATT comes from and where it goes</h3>
+<ul>
+  <li><b>In:</b> components staked <i>powered off</i> mint WATT continuously, at a rate proportional to
+      their combined stake weight. Claiming costs you nothing but gas.</li>
+  <li><b>Out:</b> a rig that is <i>powered on and mining</i> burns WATT at its components' combined
+      <code>wattConsumption</code> rate, per second. 99 % of that burn is destroyed; 1 % goes to the pool
+      host. There is no staker share and the 99 % is a hard-coded constant no pool can lower.</li>
+  <li><b>Round trip:</b> WATT you spend in the shop is routed into the <b>WattStakingPool</b> via
+      <code>fund()</code>, and WATT stakers share it pro-rata. That pool is a pure redistribution — it has
+      no emission rate of its own, so it pays out exactly as fast as people buy things.</li>
+</ul>
+
+<div class="note warn">
+  <span class="t">The staking pool only counts <code>fund()</code></span>
+  <p>Sending WATT to <code>WattStakingPool</code> with a plain <code>transfer</code> <b>strands it</b> —
+  it will sit there and never be distributed. Every in-game purchase path routes through
+  <code>approve</code> + <code>fund(amount)</code> for this reason. If the pool shows "nothing pending", the
+  usual answer is simply that everything funded so far has already been claimed; it pays again the moment
+  someone buys something.</p>
+</div>
+
+<h3>Anti-Sybil, honestly stated</h3>
+<p>You cannot stop somebody minting from a hundred wallets on-chain. The design makes it unprofitable
+instead: the free case has ~0 stake weight, the WATT staking pool is <i>funded</i> rather than minted so
+splitting a stake across wallets earns the same total, and claiming costs gas that exceeds a dust reward.
+One free PC per wallet, forever, is enforced by a persistent flag that transferring the case away does not
+reset — that is precisely the bug that was exploited in 2023.</p>
+</section>
+
+<section id="play">
+<h2>Playing the game</h2>
+
+<p class="lead"><a href="https://mining-game.wattxchange.app/">mining-game.wattxchange.app</a> — a
+single-file 3D game. It installs as a PWA (look for the install chip), works offline for the demo world,
+and loads every 3D model straight from Bitcoin SV ordinals.</p>
+
+<h3>Controls</h3>
+<div class="tw"><table>
+<thead><tr><th>Key</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td><code>W A S D</code> · <code>W A D X</code> · arrows</td><td>Walk. Camera-relative, on the floor plane.</td></tr>
+<tr><td><code>Shift</code></td><td>Run</td></tr>
+<tr><td><code>F</code></td><td>Toggle pointer-lock mouse-look. Release and your framing and zoom survive.</td></tr>
+<tr><td><b><code>1</code></b></td><td>Shop</td></tr>
+<tr><td><b><code>2</code></b></td><td>Garage</td></tr>
+<tr><td><b><code>3</code></b></td><td>Pool Hub</td></tr>
+<tr><td><b><code>4</code></b></td><td>Stats</td></tr>
+<tr><td><b><code>5</code></b></td><td>Wallet</td></tr>
+<tr><td><code>B</code> / <code>O</code> / <code>N</code></td><td>Bench / in-game OS / network</td></tr>
+</tbody></table></div>
+<p>Menu hotkeys are on the number row because the old letter bindings (<code>W</code> = wallet,
+<code>S</code> = shop) collided head-on with walking. The on-screen hint fades after your first move.</p>
+
+<h3>Demo mode and Live mode are separate worlds</h3>
+<p>The pill in the HUD toggles between them, and they do not share a save.</p>
+<div class="tw"><table>
+<thead><tr><th></th><th>Demo</th><th>Live</th></tr></thead>
+<tbody>
+<tr><td>Save slot</td><td><code>tmg3d_v1</code></td><td><code>tmg3d_live_v1</code></td></tr>
+<tr><td>Components</td><td>Simulated, free</td><td>Mirrors the NFTs your wallet actually holds</td></tr>
+<tr><td>WATT</td><td>Simulated drip</td><td>Real WATT v2 balance</td></tr>
+<tr><td>Earning</td><td>Simulated block rewards</td><td>On-chain only — the simulation is switched off</td></tr>
+<tr><td>Shop</td><td>Simulated purchases</td><td>Real <code>buyWithWatt</code> / real free mint</td></tr>
+<tr><td>Pool Hub</td><td>Fictional demo pools</td><td>Real registry pools, real host flow</td></tr>
+</tbody></table></div>
+<p>A fresh Live world starts empty and then grants you one desk per Gaming PC you own. Demo progress
+never leaks into Live, and resetting wipes only the world you are in.</p>
+
+<h3>The in-game HD payout wallet</h3>
+<p>Open the Wallet app (<code>5</code>) → MingOS Wallet. It generates or imports a <b>12-word BIP-39
+seed</b> and derives one payout address per payout chain, so you can be paid in coins that have no EVM
+address at all.</p>
+<div class="tw"><table>
+<thead><tr><th>Coin</th><th>Derivation path</th><th>Address form</th></tr></thead>
+<tbody>
+<tr><td>EVM (POL / ALT / WATT)</td><td><code>m/44'/60'/0'/0/0</code></td><td>MetaMask-compatible</td></tr>
+<tr><td>WTX (WATTxchain)</td><td><code>m/44'/22356'/0'/0/0</code></td><td>base58, version 73 — <code>W…</code></td></tr>
+<tr><td>HTH</td><td><code>m/44'/5'/0'/0/0</code></td><td>version 0x64 — <code>h…</code></td></tr>
+<tr><td>BITN</td><td><code>m/44'/9332'/0'/0/0</code></td><td>version 0x19 — <code>B…</code></td></tr>
+<tr><td>BSV</td><td><code>m/44'/236'/0'/0/0</code></td><td>version 0x00 — <code>1…</code></td></tr>
+</tbody></table></div>
+<p>The WTX path matches the WATTx wallet extension and mobile app exactly, so one seed opens the same WTX
+wallet everywhere. Only addresses and paths are saved in your browser — never keys. Each coin has a
+<b>SET PAYOUT</b> button that registers the address on the PayoutHub so the pool operator knows where to
+send your earnings; EVM rewards go to your connected address and need no registration.</p>
+
+<div class="note bad">
+  <span class="t">The seed is shown once</span>
+  <p>Write it down. There is no server-side copy, no account recovery and no support channel that can
+  restore it. If you would rather not manage another seed, import one you already have.</p>
+</div>
+</section>
+
+<section id="components">
+<h2>Getting components</h2>
+
+<h3>The free Gaming PC</h3>
+<p>Every wallet can mint <b>one</b> Gaming PC (item id 1) for free, forever, paying only gas. Use the
+in-game shop in Live mode, or the <b>Buy components</b> tab on the stake page.</p>
+<div class="kv">
+  <div><div class="k">Cost on Altcoinchain</div><div class="v">~120,000 gas ≈ 0.00012 ALT</div></div>
+  <div><div class="k">Cost on Polygon</div><div class="v">~150,000 gas</div></div>
+  <div><div class="k">Limit</div><div class="v">1 per wallet, permanent</div></div>
+</div>
+<p>Both chains are open — no allowlist, not paused. The flag is persistent, so transferring the case away
+does <b>not</b> re-open your mint. That is deliberate: it is the exact hole that was exploited in 2023,
+when the check was against a live <code>balanceOf</code>.</p>
+
+<div class="note info">
+  <span class="t">Why the shop's own "mint free" button used to fail</span>
+  <p>The shop prices item 1 at zero, and <code>ItemShop.costWatt()</code> requires a price above zero, so
+  <code>buyWithWatt(1, n)</code> always reverted with <i>not for sale</i>. A separate
+  <code>CaseFreeMint</code> contract now owns that path. If you find an old build whose free-mint button
+  reverts, that is why — use the current site.</p>
+</div>
+
+<h3>Buying the rest</h3>
+<p>The shop sells 36 items for WATT. Tick as many cards as you like, set quantities, and the cart shows a
+running total, your balance, and what is left after. Cards that would push you past your balance turn red.</p>
+
+<div class="note warn">
+  <span class="t">A multi-buy is several transactions</span>
+  <p>The deployed <code>ItemShop</code> has no batch entry point — only
+  <code>buyWithWatt(id, amount)</code>. So one unlimited WATT approval is followed by one transaction per
+  ticked card. The running total is decremented between confirmations so the arithmetic stays right
+  mid-batch. Real gas per buy is about 170,000.</p>
+</div>
+
+<h3>Upgrades are endless</h3>
+<p>Power grid and cooling ladders continue past their 16 published tiers: capacity grows ×1.65 per level,
+cooling coefficient shrinks ×0.75 per level, and price grows ×2.25 per level. A worst-case farm — 33 rigs
+of an ASIC plus 19 GPX880s, 41,250 W — is fully powered at power level 18 and fully cooled at cooling
+level 20. <b>Rack Expansion</b> grows the GPUs a framed rig can hold (8 → 10 → 12 → 14 → 16 → 19);
+<b>Garage Expansion</b> adds desks.</p>
+
+<div class="note tip">
+  <span class="t">Game credit — one signature instead of many</span>
+  <p>In Live mode the garage shows a credit banner. Topping up does <b>one</b> signed WATT v2 transfer into
+  the staking pool and credits your in-game balance; upgrades then spend that credit with no further
+  wallet prompts. This is deliberately <i>not</i> an ERC-20 approval — a standing allowance the page could
+  pull from would be an exploit surface. With zero credit, each upgrade falls back to its own signed
+  payment.</p>
+</div>
+</section>
+
+<section id="staking">
+<h2>Powered-off staking — minting WATT</h2>
+
+<p class="lead">This is the passive side of the economy and the simplest thing to do with components you
+are not currently using.</p>
+
+<ol class="steps">
+  <li><b>Open the Stake &amp; Claim tab</b> at
+      <a href="https://stake.mining-game.wattxchange.app/">stake.mining-game.wattxchange.app</a>.</li>
+  <li><b>Tick components and set quantities</b>, then <b>Stake selected</b> — or stake one card at a time.</li>
+  <li><b>Approve on demand.</b> <code>MiningGameV3.stake()</code> takes custody via
+      <code>safeTransferFrom</code>, so the items collection needs <code>setApprovalForAll</code> first.
+      Every stake path now does this automatically; the separate <b>Approve items</b> button is there if
+      you prefer to do it up front. Real stake gas is about 228,000.</li>
+  <li><b>Claim whenever.</b> <code>claimWatt()</code> pays your accrued WATT; you pay only gas. The hero
+      panel shows pending WATT and your total off-weight live.</li>
+  <li><b>Unstake per position.</b> Each staked position has its own Unstake button.</li>
+</ol>
+
+<div class="note bad">
+  <span class="t">A component is staked <i>or</i> mining, never both</span>
+  <p>Both actions take custody of the NFT, so they are mutually exclusive on-chain. Staking is the
+  powered-off, WATT-minting state; mining is the powered-on, WATT-burning state. Pull a component out of
+  staking before you build it into a rig.</p>
+</div>
+
+<h3>Staking WATT itself</h3>
+<p>The <b>Stake WATT</b> tab stakes WATT v2 into the <code>WattStakingPool</code> and pays you a pro-rata
+share of every WATT spent in the shop. Unstaking always returns your full principal — rewards are tracked
+separately and are never at risk. There is no lock and no emission schedule; the pool distributes exactly
+what has been funded into it.</p>
+</section>
+<section id="mining">
+<h2>Mining for real coins</h2>
+
+<p class="lead">This is the point of the whole thing. A pool is backed by a real node — a validator, a set
+of masternodes, a staking wallet. Whatever that node earns is reported on-chain and split among the pool's
+miners by effective power. Payouts are pushed to you automatically; there is no claim button and no gas
+for you to pay.</p>
+
+<h3>How your share is calculated</h3>
+<pre><code>effectivePower = hashRate × efficiency × 100 / wattConsumption
+
+yourShare = effectivePower(yourRig) / Σ effectivePower(all rigs mining that coin)
+wattBurned = duration × wattPerHour / 3600</code></pre>
+<p>Only rigs with an <i>active, WATT-fuelled</i> session count toward the denominator. Efficient rigs beat
+brute-force ones: doubling hash rate while doubling power draw earns you nothing.</p>
+
+<h3>Rewards are deposit-driven — there is no emission rate</h3>
+<p>The v3 engine has <b>no</b> <code>rewardRate</code>. Rewards exist only when real coin arrives via
+<code>reportPoolDeposit(poolId, targetId, amount)</code>, and are split with a MasterChef-style accumulator
+over effective power. A deposit that arrives while nobody is mining that coin is credited to the host
+rather than lost. Each coin's accounting is scoped per target, so a host can never discharge one coin's
+debt with another coin's receipt.</p>
+
+<h4>Point a rig at a pool</h4>
+<ol class="steps">
+  <li><b>Get a rig NFT.</b> Either mint one (<code>MiningRigNFT</code>, 0.1 POL / 0.1 ALT, random traits)
+      or use the <b>🎫 CLAIM RIG</b> path, which escrows classic components and derives a rig's traits
+      from them: PC +100 hash/300 W, XL1 +80/200, TX120 +60/250, GP50 +150/400, Genesis Badge adds
+      efficiency, rarity and cooling. <code>reclaim()</code> returns the components.</li>
+  <li><b>Open the Pool Hub</b> — in the game (<code>3</code>) or on
+      <a href="https://stake.mining-game.wattxchange.app/pools.html">pools.html</a>.</li>
+  <li><b>Register a payout address</b> for the coin you want. EVM coins pay your connected address
+      directly. For WTX, HTH, BITN or BSV you must call <code>hub.setPayoutAddress(targetId, address)</code>
+      — the in-game wallet's SET PAYOUT button does this, and the game blocks mining until it is set.</li>
+  <li><b>Choose the coin.</b> A pool offers a <i>menu</i> of payout coins; each rig picks one. The MINE
+      button pops the pool's menu.</li>
+  <li><b>Start mining.</b> <code>startMining(rigId, poolId, targetId, wattAmount, …)</code> stakes the rig
+      NFT into the pool with WATT as fuel. A minimum of one hour of WATT is required. Your rig's power
+      joins the pool from that moment.</li>
+  <li><b>Stop when you like.</b> <code>stopMining</code> settles what was consumed, returns the NFT, and
+      pays out. Unused fuel is not consumed.</li>
+</ol>
+
+<div class="note tip">
+  <span class="t">An underfunded pool can no longer trap your rig</span>
+  <p>In the original engine, <code>stopMining</code> claimed <i>before</i> returning the NFT, and the claim
+  reverted if the pool could not cover it — so an underfunded pool locked your rig inside the contract
+  until an operator topped it up. The v3 <code>PayoutHub.credit()</code> credits whatever the target can
+  cover and never reverts; the engine carries any shortfall as <code>session.owed</code>, emits
+  <code>Unpaid</code>, and <b>returns your NFT regardless</b>.</p>
+</div>
+
+<h3>The live pools</h3>
+<p>The reference deployment, <b>Genesis Pool</b>, runs four pools on Polygon backed by real infrastructure:</p>
+<div class="tw"><table>
+<thead><tr><th>Pool</th><th>Coin</th><th>Backed by</th><th>Stratum</th></tr></thead>
+<tbody>
+<tr><td>#0</td><td><b>WTX</b></td><td>A WATTxchain staking delegation plus the merged-mining payout address — both staking and mined-block income feed the same pool</td><td><code>genesis-pool.wtx.wattxchange.app:3333</code> · TLS 4333</td></tr>
+<tr><td>#1</td><td><b>BITN</b></td><td>A Bitnet PoS wallet; matured coinstakes are credited as they land</td><td><code>genesis-pool.bitn.wattxchange.app:3334</code> · TLS 4334</td></tr>
+<tr><td>#2</td><td><b>ALT</b></td><td>An Altcoinchain validator delegation (PoS activates at block 7,200,000)</td><td><code>genesis-pool.alt.wattxchange.app:3336</code> · TLS 4336</td></tr>
+<tr><td>#3</td><td><b>HTH</b></td><td>10 Help The Homeless masternodes, 1,000,000 HTH collateral each</td><td><code>genesis-pool.hth.wattxchange.app:3338</code> · TLS 4338</td></tr>
+</tbody></table></div>
+<p>Pool fee 0.5 %. The full miner loop has been proven end-to-end on Polygon mainnet with real money: a
+real masternode payment of 9.765625 HTH was fed in and split 99.5 / 0.5 exactly between the miner and the
+pool.</p>
+
+<h3>What "payout" actually looks like</h3>
+<p>The operator daemon polls every 120 seconds. It reads the backing node's real income, calls
+<code>reportPoolDeposit</code> on-chain (paying the gas itself), and the engine credits each rig by
+effective power into the PayoutHub as a running balance. A per-coin payer then sends each miner's accrued
+balance to their registered payout address once it clears the minimum — <b>0.1 WTX</b>, <b>1.0 HTH</b>,
+<b>1.0 BITN</b>. It is a push model end to end: you never sign anything after starting the session, and you
+never pay payout gas.</p>
+</section>
+
+<section id="pool-host">
+<h2>Host a pool — locking 100,000 WATT</h2>
+
+<p class="lead">Hosting turns your own node's earnings into a game economy. You lock 100,000 WATT v2 once,
+and from then on you can open pools, set fees, and your own rigs mine for free.</p>
+
+<div class="kv">
+  <div><div class="k">Stake</div><div class="v">100,000 WATT v2</div></div>
+  <div><div class="k">Home chain</div><div class="v">Polygon <i>or</i> ALT</div></div>
+  <div><div class="k">Unstake hold</div><div class="v">30 days</div></div>
+  <div><div class="k">Host perks</div><div class="v">1 % WATT cut + free mining</div></div>
+</div>
+
+<h3>What the stake buys you</h3>
+<ul>
+  <li><b>The right to create pools.</b> <code>NodeMiningEngine.createPool</code> checks the
+      <code>PoolRegistry</code> for an active registration with at least the required stake.</li>
+  <li><b>Free mining for your own rigs.</b> A host may call <code>startMining</code> with
+      <code>wattAmount == 0</code> for rigs they own. The stake <i>is</i> the fuel. Consumption is capped at
+      the deposit, so a zero-deposit session consumes zero forever.</li>
+  <li><b>1 % of every WATT burn</b> in your pools, with the other 99 % destroyed. That split is a
+      <code>constant</code> — no pool can lower the burn.</li>
+  <li><b>Your reward fee</b>, in basis points, on top.</li>
+</ul>
+
+<h4>Becoming a host</h4>
+<ol class="steps">
+  <li><b>Get 100,000 WATT v2</b> on your chosen home chain. Buy on a DEX and migrate,
+      <a href="#bridge-oft">bridge v2 across</a>, or use the
+      <a href="#bridge-wtx">supply-ratio mint</a> — depositing WTX mints WATT v2 at the live circulating
+      supply ratio, which is how the reference host funded their stake.</li>
+  <li><b>Open the Create a pool tab</b> on
+      <a href="https://stake.mining-game.wattxchange.app/pools.html">pools.html</a>, section
+      <b>1 · Become a host</b>.</li>
+  <li><b>Fill in your node.</b> Pool name, stratum endpoint, node RPC endpoint, node P2P endpoint, and
+      your fee percent. These are published on-chain so miners can see what they are joining.</li>
+  <li><b>Register + lock WATT.</b> This approves 100,000 WATT v2 and calls
+      <code>registerPoolWithNode</code>. Your status flips to <b>ACTIVE</b>.</li>
+  <li><b>Open a pool</b> in section <b>2</b>: pool name, the payout coins it offers, the node endpoint,
+      your reward fee in bps (300 = 3 %) and your WATT cut in bps. <code>createPool</code> returns the pool
+      id miners will point rigs at.</li>
+</ol>
+
+<h3>One pool, a menu of coins</h3>
+<p>A single 100,000-WATT stake backs a pool that can offer <b>up to 16 payout coins</b>, and each miner
+picks which one their rig mines. Power, accumulators, deposits and fees are all tracked per
+<code>(pool, coin)</code> pair. You can extend a live pool's menu at any time with
+<code>addPoolTarget</code>, and change fees at any time.</p>
+
+<div class="note bad">
+  <span class="t">Pool fees are uncapped and changeable mid-session — by design</span>
+  <p>A host can set the reward fee to 100 % at any moment, including on sessions that are already open, and
+  take everything earned from that point on. This was chosen deliberately after the trade-off was spelled
+  out; the mitigation is transparency, not restriction. Every change emits
+  <code>PoolFeeChanged(poolId, oldFee, newFee, oldWattCut, newWattCut)</code>, the current rate is readable
+  on-chain before you join, and each <code>Paid</code> event carries the <code>feeBpsApplied</code>.
+  Rewards already credited cannot be clawed back. <b>Read a pool's fee before you point a rig at it, and
+  watch it while you mine.</b></p>
+</div>
+</section>
+
+<section id="pool-run">
+<h2>Running your pool</h2>
+
+<h3>Connecting real income</h3>
+<p>The link between your node and the on-chain pool is the <b>operator daemon</b>
+(<code>mining-game-pool-operator</code>). There is no on-chain validator field; the daemon holds the
+mapping and it is the engine's owner or an appointed <code>poolPayer</code>, which is what authorises every
+<code>reportPoolDeposit</code>. It supports three shapes of income:</p>
+<div class="tw"><table>
+<thead><tr><th>Feeder</th><th>Reads</th><th>Used for</th></tr></thead>
+<tbody>
+<tr><td><code>validators</code></td><td>Native balance growth of an address</td><td>PoS validators, staking delegations, merged-mining payout addresses</td></tr>
+<tr><td><code>masternodes</code></td><td>Coinbase payouts to each <code>proTxHash</code></td><td>HTH and other Dash-lineage masternodes</td></tr>
+<tr><td><code>stakers</code></td><td>Newly-matured coinstakes via <code>listsinceblock</code></td><td>Qtum-lineage PoS wallets (BITN)</td></tr>
+</tbody></table></div>
+<p>Every feeder <b>self-baselines on first sight</b>, so historical balance is never credited — only growth
+from the moment you wire it up. A <code>delegated</code> field scales credit when you pledge only part of a
+wallet to the pool. A <code>readChain</code> label lets several addresses on one chain each feed
+separately, and <code>reportChain</code> lets a node on one chain feed a pool on another.</p>
+
+<div class="note warn">
+  <span class="t">Baseline by chain <i>and</i> address</span>
+  <p>An early version keyed the balance baseline by chain alone, so repointing a feeder at a new address
+  credited the difference between two unrelated balances — about 9,495 WTX of phantom host credit on one
+  pool. It is now keyed <code>chain:address</code>. If you repoint a feeder, verify the new baseline before
+  you arm the payer.</p>
+</div>
+
+<h3>Stratum endpoints</h3>
+<p>If your pool takes real miners, publish plain TCP and TLS. Note that a Cloudflare-proxied DNS record
+<b>blackholes raw TCP</b> — stratum hostnames must be DNS-only A records. TLS is terminated with an nginx
+<code>stream</code> block; set <code>proxy_timeout 1h</code>, because nginx's 10-minute default drops idle
+miners mid-shift.</p>
+
+<h3>The 100k WATT Club badge</h3>
+<p>Hosts can mint a fully on-chain ERC-721 badge whose art — roughly 740,000 micro digits rendered as
+digits made of digits — lives entirely in contract storage across 20 SSTORE2 chunks. No IPFS, no metadata
+server, nothing that can lapse. One global member-number counter spans every chain, with tiers Genesis
+#1–100 (gold), Founder #101–1000 (platinum) and Member #1001–10000 (electric), and live <i>Stake Chain</i>
+and <i>Pool ID</i> traits. Mint at
+<a href="https://nft.wattxchange.app/genesis.html">nft.wattxchange.app/genesis.html</a>.</p>
+<div class="tw"><table>
+<thead><tr><th>Chain</th><th>ClubBadge</th></tr></thead>
+<tbody>
+<tr><td>WATTxchain 22356</td><td class="addr">0xf7E47Bd99554c14991682C7bE937d735Da93DfC8</td></tr>
+<tr><td>Altcoinchain 2330</td><td class="addr">0x80A0C4E85C95814287649F7Df558697ae411f2B8</td></tr>
+<tr><td>Polygon 137</td><td class="addr">0x20cb5AF1D352C5384c25F25777f34B4650906437</td></tr>
+<tr><td>Base 8453</td><td class="addr">0x430BFc6aF1b5fAAff104484A827d98D59EE31a6D</td></tr>
+<tr><td>Optimism 10</td><td class="addr">0xf2DbF910aD1cA08c3879C72AE6277fA903E058c4</td></tr>
+<tr><td>Sonic 146</td><td class="addr">0xf2DbF910aD1cA08c3879C72AE6277fA903E058c4</td></tr>
+</tbody></table></div>
+<p>All six verify the same genesis art hash <code>0x9b7563e1…3906cf</code> on-chain. The series genesis is
+WATTxchain, where mint payments auto-stake in the treasury.</p>
+
+<div class="note bad">
+  <span class="t">On WATTxchain, mint to a hash160 address</span>
+  <p>An Ethereum-derived address on WATTxchain is a valid 20-byte recipient but has no spendable UTXO
+  form — an ERC-721 minted there can <b>never</b> be transferred, and there is no admin rescue. This cost
+  us badge #00001 once. Use a WATTx wallet extension or node-wallet address.</p>
+</div>
+</section>
+
+<section id="pool-close">
+<h2>Closing a pool</h2>
+
+<p>Unstaking is a <b>30-day hold</b>, and the pool keeps running the whole time.</p>
+<ol class="steps">
+  <li><b>Request unstake.</b> Your registration moves to <code>UNSTAKING</code>. You can no longer create
+      <i>new</i> pools, but your stake stays locked and therefore your existing pools stay backed — and you
+      keep mining free.</li>
+  <li><b>The warning is public.</b> <code>poolShutdown(poolId)</code> returns
+      <code>(shuttingDown, unlockAt)</code>, and every front-end shows miners a countdown so they can move
+      their rigs before the pool goes.</li>
+  <li><b>Complete after 30 days.</b> <code>completeUnstake</code> returns your 100,000 WATT. Only then does
+      <code>enforceRegistration(poolId)</code> become callable — by anyone — to deactivate the pool.</li>
+</ol>
+<p><code>PAUSED</code> is different from <code>UNSTAKING</code>: a paused host still counts as staked and
+keeps their pools; re-activation re-checks the stake.</p>
+
+<div class="note info">
+  <span class="t">Cross-chain hosting</span>
+  <p>Today each chain's engine gates on its <b>local</b> registry, so hosting on Polygon and on
+  Altcoinchain are separate 100,000-WATT stakes. <code>PoolRegistryMirror</code> is built and tested for the
+  stake-once-mirror-everywhere model — a remote-chain stand-in fed either by a LayerZero adapter or by
+  EIP-712 <code>submitAttestation</code> relays, fail-closed with a 7-day maximum record age so a stale
+  record reads as CLOSED. It is not deployed yet.</p>
+</div>
+</section>
+<section id="bridges">
+<h2>The bridges — five rails, one map</h2>
+
+<p class="lead">The game spans four chains with three completely different address formats, so there is no
+single bridge. There are five rails, each honest about its own trust model.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Rail</th><th>Moves</th><th>Between</th><th>Mechanism</th><th>Trust</th></tr></thead>
+<tbody>
+<tr><td><a href="#bridge-oft"><b>WATT omnichain</b></a></td><td>WATT v2</td><td>ALT ⇄ Polygon</td><td>LayerZero OFT — burn on source, mint on destination</td><td>Our own DVN attests; supply conserved exactly</td></tr>
+<tr><td><a href="#bridge-wtx"><b>WATT ⇄ WTX desk</b></a></td><td>WATT v2 ⇄ native WTX</td><td>ALT/Polygon ⇄ WATTxchain</td><td>HTLC in-leg, watched deposits out-leg; AMM or supply-ratio mint pricing</td><td>Operated desk, refundable HTLC</td></tr>
+<tr><td><a href="#bridge-evm"><b>WATT cross-EVM</b></a></td><td>WATT v2</td><td>ALT ⇄ Polygon</td><td>Same desk, 1:1 minus fee, paid from float</td><td>Operated desk, refundable HTLC</td></tr>
+<tr><td><a href="#bridge-alt"><b>ALT omnichain</b></a></td><td>native ALT</td><td>ALT ⇄ Polygon</td><td>LayerZero lockbox on ALT, mint/burn OFT on Polygon</td><td>Same mesh; escrow exactly backs supply</td></tr>
+<tr><td><a href="#bridge-bsv"><b>BSV attested</b></a></td><td>WATT + rig NFTs</td><td>EVM → Bitcoin SV</td><td>Burn to <code>0x…dEaD</code>, oracle quorum releases from a fixed treasury</td><td>Bounded — treasury-capped, cannot steal</td></tr>
+</tbody></table></div>
+
+<div class="note info">
+  <span class="t">Why there is no "one bridge"</span>
+  <p>WATTxchain and Bitcoin SV have no EVM you can transact on as a user — WATTxchain's EVM re-signs
+  through the node wallet, and BSV is pure UTXO script. A trust-minimised message bridge needs both ends to
+  verify the other's consensus. Where that is possible (EVM ⇄ EVM) we run a real LayerZero mesh. Where it is
+  not, we run an operated desk and say so.</p>
+</div>
+</section>
+
+<section id="bridge-oft">
+<h2>WATT omnichain — LayerZero <span class="pill live">Live</span></h2>
+
+<p class="lead">Move WATT v2 between Altcoinchain and Polygon. WATT is <b>burned</b> on the source chain and
+<b>minted</b> on the destination — the same token, the same total supply, 1:1. No wrapped IOU.</p>
+
+<p><b>Use it:</b> <a href="https://stake.mining-game.wattxchange.app/bridge.html">stake.mining-game.wattxchange.app/bridge.html</a></p>
+
+<h3>Why we self-host the mesh</h3>
+<p>LayerZero's official endpoints only route to endpoint ids that LayerZero Labs has registered, and the
+registration functions are owner-only, so Altcoinchain cannot use an official endpoint on any remote chain.
+We therefore run our own <code>EndpointV2 + SendUln302 + ReceiveUln302</code> on both ends, with
+<code>eid == chainid</code>. The adapter subclasses <code>OFTCore</code> directly: <code>_debit</code> is
+<code>burnFrom</code>, <code>_credit</code> is <code>mint</code>, and the adapter holds
+<code>MINTER_ROLE</code> on WATT v2 on each chain.</p>
+
+<div class="tw"><table>
+<thead><tr><th></th><th>Altcoinchain 2330</th><th>Polygon 137</th></tr></thead>
+<tbody>
+<tr><td>WATT v2</td><td class="addr">0xB7635E386283CAE6FB1A710f19CaA8220beF630D</td><td class="addr">0x387693eCEC037C61943404F03c097d2ADA15ae3f</td></tr>
+<tr><td>OFT adapter</td><td class="addr">0x8ce709Af081031eA9e3C0E5E59b20E9c4A823894</td><td class="addr">0xBE9Fb3ee29C01d604F522765726C5A59573A77e4</td></tr>
+<tr><td>LZ EndpointV2</td><td class="addr">0x4cf8a62FFF13F2c0572023804d320918b963fab3</td><td class="addr">0x4cf8a62FFF13F2c0572023804d320918b963fab3</td></tr>
+<tr><td>Confirmations required</td><td>6 (≈ seconds inbound)</td><td>40 (≈ 20 min inbound)</td></tr>
+</tbody></table></div>
+
+<h4>Sending</h4>
+<ol class="steps">
+  <li><b>Pick a direction</b> and connect on the source chain.</li>
+  <li><b>Enter an amount.</b> The page quantises it for you — see the warning below.</li>
+  <li><b>Approve</b> WATT v2 for the adapter, then <b>Send</b>. Messaging fee is currently 0.</li>
+  <li><b>Wait for the relayer.</b> ALT → Polygon needs 40 Polygon confirmations, so about twenty minutes.
+      Polygon → ALT needs 6 and lands in seconds. Send gas is roughly 133,000.</li>
+</ol>
+
+<div class="note warn">
+  <span class="t">The 6-decimal trap — why "MAX" used to fail</span>
+  <p>The OFT carries amounts in <code>sharedDecimals() == 6</code>, with
+  <code>decimalConversionRate() == 1e12</code>, so anything finer than six decimal places is dust that
+  <code>_debitView</code> drops. Sending <code>minAmountLD == amountLD</code> untrimmed then reverts with
+  <code>SlippageExceeded (0x71c4efed)</code> for <i>any</i> amount with more than six decimals — and a real
+  balance never lands on a 6-decimal boundary, so MAX failed every time. Always quantise
+  <code>(wei / 1e12) × 1e12</code> before approving, quoting and sending. The page does this now. If you
+  are calling the contract yourself, do it too.</p>
+</div>
+
+<div class="note bad">
+  <span class="t">If a send burns but never mints</span>
+  <p>The burn is on-chain and permanent; the mint waits on the relayer. Compare
+  <code>endpoint.outboundNonce(src)</code> with <code>endpoint.inboundNonce(dst)</code> — if outbound is
+  ahead, the relayer is behind, not your funds lost. This has happened twice: once because a transient
+  disk-full truncated the relayer's state file to zero bytes (and <code>pm2</code> still reported
+  <code>online, restarts: 0</code> for an hour), and once because an unbounded <code>getLogs</code> range
+  hit a pruned-history error. Both are fixed, and a liveness monitor now judges the relayer by log
+  freshness rather than process status. Packets always deliver once the relayer catches up.</p>
+</div>
+</section>
+
+<section id="bridge-wtx">
+<h2>WATT ⇄ WTX desk <span class="pill live">Live</span></h2>
+
+<p><b>Use it:</b> <a href="https://bridge.wattxchange.app/">bridge.wattxchange.app</a> — the desk serves
+its own swap UI, so there is no separate front-end to go stale.</p>
+
+<p class="lead">This is a <b>desk</b>, not an atomic swap, and that is a consequence of the chain. Users
+cannot sign transactions on WATTxchain's EVM — its MetaMask compatibility layer recovers the sender and
+then dispatches node-wallet RPCs — so WTX has to move on the UTXO layer.</p>
+
+<h3>How a swap runs</h3>
+<div class="tw"><table>
+<thead><tr><th>Direction</th><th>Your side</th><th>Desk side</th></tr></thead>
+<tbody>
+<tr><td><b>WATT → WTX</b></td><td>Lock WATT in the <code>HTLCVault</code> under a desk-issued hashlock. Minimum lock 12 h; your refund path is always intact.</td><td>Pays WTX <i>first</i>, then claims the lock. The desk refuses to pay a lock with under 6 h left.</td></tr>
+<tr><td><b>WTX → WATT</b></td><td>Send WTX to the deposit address the desk shows you.</td><td>Waits 3 confirmations, then pays WATT on your chosen EVM chain.</td></tr>
+</tbody></table></div>
+<p>Vault <code>0x54117CAd2835B3D5B499f3acA03B1Ff643Af1955</code>, same address on Altcoinchain and
+Polygon. Operator <code>0xE731A3d4D7C5cb642B5041392a4Eb6E966Dba11a</code>.</p>
+
+<h3>Two pricing modes</h3>
+<h4>Virtual AMM (default)</h4>
+<p>A constant-product curve over the desk's <i>actual</i> aggregate reserves — the WTX float on one side,
+the operator's WATT across every enabled EVM chain plus the BSV treasury on the other:
+<code>out = R_out × in / (R_in + in)</code>. A fixed 1:1 rate was drainable the moment WATT's market price
+diverged from one WTX, so the pool self-prices instead. Reserves are read live with a 10-second cache and
+the desk fails closed — an unreadable reserve queues the swap rather than mispricing it.</p>
+
+<h4>Supply-ratio mint (WTX → WATT)</h4>
+<p>Instead of paying from float, the desk can <b>mint</b> WATT v2 at the live ratio of circulating supplies
+(WATT circulating ÷ WTX circulating), sourced from the supply aggregator with a 30-minute staleness gate.
+This is how the reference host funded their 100,000-WATT stake — one 18,500 WTX deposit minted 85,584 WATT.
+The cap is 100,000 WTX per swap.</p>
+
+<div class="note warn">
+  <span class="t">The mint ratchet, stated plainly</span>
+  <p>Every mint raises WATT's circulating supply, so the <i>next</i> mint pays more WATT per WTX. That is
+  inherent to a supply-ratio peg and it was accepted knowingly when the mode was opened to the public. The
+  minting leg also requires the operator to hold <code>MINTER_ROLE</code> on that chain, granted once by
+  the 2-of-2 multisig — Polygon is granted, Altcoinchain is not, so ALT-destination mint swaps queue rather
+  than mispay.</p>
+</div>
+
+<div class="note bad">
+  <span class="t">"Stuck waiting for your deposit" is almost always the WTX chain, not the desk</span>
+  <p>The desk sees your deposit at zero confirmations but needs three. If WATTxchain is not producing
+  blocks, every WTX-leg swap waits silently. The desk now publishes
+  <code>wtxChain: {height, tipTime, tipAgeSeconds, advancing}</code> and the UI shows an amber
+  <i>WTX network paused — no new blocks for N min</i> banner when the tip is more than 15 minutes old, and a
+  live <i>deposit detected — N/3 confirmations</i> counter otherwise. Your funds are safe and refundable
+  throughout.</p>
+</div>
+
+<div class="note info">
+  <span class="t">Treasury money is carved out of the pool</span>
+  <p>Club-badge mint payments and the owner's own coins live in the same wallet the AMM measures, which
+  once made the pool read 154,726 WTX against 1,595 WATT — 100 WATT would have drained about 9,127 WTX of
+  treasury money. Those addresses are now excluded from the reserve calculation <i>and</i> their UTXOs are
+  persistently locked so coin selection can never spend them.</p>
+</div>
+</section>
+
+<section id="bridge-evm">
+<h2>WATT cross-EVM (desk) <span class="pill live">Live</span></h2>
+
+<p>The same desk also moves WATT v2 between Altcoinchain and Polygon at 1:1 minus fee, paid out of the
+operator's float rather than by burn-and-mint. You lock on the source chain, the desk pays on the
+destination from float, then claims your lock.</p>
+<p>This exists alongside the LayerZero rail because it settles in seconds in <i>both</i> directions and
+needs no messaging confirmations. Its depth is bounded by float — currently a few hundred WATT per chain —
+so the LayerZero bridge is the right rail for large amounts and the desk is the right rail for small,
+fast ones. Both are reachable from the same
+<a href="https://stake.mining-game.wattxchange.app/bridge.html">bridge page</a> and the
+<a href="https://bridge.wattxchange.app/">desk UI</a>.</p>
+</section>
+
+<section id="bridge-alt">
+<h2>ALT omnichain <span class="pill live">Live</span></h2>
+
+<p>Native ALT moves to Polygon as an ERC-20 over the same LayerZero mesh, using a lockbox rather than
+burn-and-mint (you cannot burn a native coin).</p>
+<div class="tw"><table>
+<thead><tr><th>Side</th><th>Contract</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>Altcoinchain 2330</td><td class="addr">0x435779bFa6959072Ea321f18Fcd2e98F68441294</td><td><code>ALTNativeOFTAdapter</code> — escrows native ALT</td></tr>
+<tr><td>Polygon 137</td><td class="addr">0x8d4c8180b12c2b43ee63ac5050e8d0acece440ba</td><td><code>ALTOFT</code> "Altcoinchain" / ALT, 18 dp — mint &amp; burn</td></tr>
+</tbody></table></div>
+<p>Backing is exact: escrow balance always equals the Polygon-side total supply. Proven both ways on
+mainnet. ALT → Polygon needs 40 confirmations (about 20 minutes at ALT's ~30-second blocks); the reverse
+needs 6.</p>
+</section>
+
+<section id="bridge-bsv">
+<h2>Bitcoin SV attested bridge</h2>
+
+<p>Bitcoin SV has no EVM, so the v3 Solidity cannot deploy there. The BSV leg is a burn-and-attest design
+with a deliberately bounded trust model.</p>
+<ul>
+  <li><b>Exit is trustless.</b> You burn WATT v2 or components to <code>0x…dEaD</code> through
+      <code>MiningGameBridgeOut</code>, which emits <code>WattExited</code> / <code>NftExited</code> with a
+      <code>bridgeId = keccak(chainid, bridgeOut, nonce)</code> — unique across chains and replay-proof.
+      The oracle can only ever attest to a real, already-final on-chain burn, and it has no power to mint on
+      the EVM side.</li>
+  <li><b>Release is bounded.</b> The BSV treasury is a fixed pre-mint of 10,000,000 WATT with an n-of-m
+      quorum signing releases. The worst an oracle failure can do is leak up to the treasury — it can never
+      mint infinitely and it can never take your coins. That trade-off was chosen explicitly.</li>
+  <li><b>Coming back</b> uses the mirror-image <code>MiningGameBridgeIn</code>, an n-of-m quorum that
+      <code>mintBatch</code>es on the destination. Its digest commits to the destination chain id, the
+      bridge contract, the bridge id, the source chain, the source bridge-out contract, the recipient and
+      the exact ids and amounts, so a signature cannot be replayed on another chain or redirected. Signers
+      must arrive strictly ascending, which is an O(n) duplicate defence with no storage. The emergency
+      stop is revoking its minter rights, beyond the ordinary <code>pause()</code>.</li>
+</ul>
+<div class="note info">
+  <span class="t">Stated trust boundary</span>
+  <p>A quorum <i>could</i> mint without a real burn. That is inherent to any bridge whose destination chain
+  cannot verify the source chain's consensus, and it is written into the contract's own documentation
+  rather than hidden. Nothing is custodied, so the failure mode is inflate-yes, steal-no.</p>
+</div>
+<p>The one-way EVM → BSV path most people want is the <a href="#claim-bsv">signature-proof claim</a>,
+which is simpler and already live.</p>
+</section>
+
+<section id="routes">
+<h2>Route finder — every rail at once</h2>
+
+<p>The desk exposes a route engine that quotes multi-hop paths across <i>all</i> rails: QuickSwap
+WATT v2/WPOL, SwapinDEX WATT/wALT on Altcoinchain, the WattSwap v1→v2 migration, the desk's cross-EVM
+lane, the desk's WATT⇄WTX lane, and the LayerZero ALT bridge.</p>
+<pre><code>GET https://bridge.wattxchange.app/api/route?from=WTX&amp;to=POL&amp;amount=100
+GET https://bridge.wattxchange.app/api/quote?direction=WTX_TO_WATT&amp;amount=100&amp;dest=0x…
+GET https://bridge.wattxchange.app/api/prices
+GET https://bridge.wattxchange.app/api/info</code></pre>
+<p>The response gives the best path with per-leg venues, amounts and caps — or a <code>blocked[]</code>
+list naming the exact missing pool. The game's SELL popup uses this: it shows a live routed quote, a leg
+map, and jump-off buttons, and it greys out pairs it cannot route.</p>
+<div class="tw"><table>
+<thead><tr><th>Pair</th><th>Status</th><th>Path</th></tr></thead>
+<tbody>
+<tr><td>ALT → WTX</td><td><span class="pill live">Live</span></td><td>SwapinDEX → WattSwap migrate → desk AMM</td></tr>
+<tr><td>POL ⇄ WATT · POL → WTX · WTX → POL</td><td><span class="pill live">Live</span></td><td>QuickSwap + desk</td></tr>
+<tr><td>WTX ⇄ WATT · ALT → WATT</td><td><span class="pill live">Live</span></td><td>Desk (mint in, AMM out)</td></tr>
+<tr><td>POL → ALT · WTX → ALT · WATT → ALT</td><td><span class="pill soon">Needs liquidity</span></td><td>Unlocks when either the WATT v2/wALT pool on SwapinDEX or the ALT-OFT/WPOL pool on QuickSwap is seeded — see <a href="https://stake.mining-game.wattxchange.app/pool.html">pool.html</a></td></tr>
+</tbody></table></div>
+</section>
+<section id="ref-addresses">
+<h2>Reference — all contracts</h2>
+
+<h4>Same address on every EVM chain</h4>
+<div class="tw"><table>
+<thead><tr><th>Contract</th><th>Address</th></tr></thead>
+<tbody>
+<tr><td>MiningGameV3 (component staking)</td><td class="addr">0x856f59F1729f6e107EbCD75d21c64AB897c5681f</td></tr>
+<tr><td>GameConfigV3</td><td class="addr">0x50BAb538dB8558deE04314f87d9df33a42c61352</td></tr>
+<tr><td>MiningGameVault (proxy)</td><td class="addr">0x72A716F62aCfF960f6F097B4c7909B2368eD3acA</td></tr>
+<tr><td>Classic → v3 item migrator</td><td class="addr">0x97BcC99ff34FA2cde929c97074011E8929F59679</td></tr>
+<tr><td>Items / shop multisig (2-of-3)</td><td class="addr">0xc49699a99177a058439Ac7E3D2F5aF03d95e1D99</td></tr>
+<tr><td>HTLCVault (bridge desk)</td><td class="addr">0x54117CAd2835B3D5B499f3acA03B1Ff643Af1955</td></tr>
+<tr><td>LayerZero EndpointV2</td><td class="addr">0x4cf8a62FFF13F2c0572023804d320918b963fab3</td></tr>
+</tbody></table></div>
+
+<h4>Polygon 137</h4>
+<div class="tw"><table>
+<thead><tr><th>Contract</th><th>Address</th></tr></thead>
+<tbody>
+<tr><td>WATT v2</td><td class="addr">0x387693eCEC037C61943404F03c097d2ADA15ae3f</td></tr>
+<tr><td>WATT v1 (legacy)</td><td class="addr">0xE960d5076cd3169C343Ee287A2c3380A222e5839</td></tr>
+<tr><td>WattSwap (v1 → v2)</td><td class="addr">0x90a0906a7e01a65f48bd35741681088E3FA6729c</td></tr>
+<tr><td>WATT OFT adapter</td><td class="addr">0xBE9Fb3ee29C01d604F522765726C5A59573A77e4</td></tr>
+<tr><td>ALT OFT (bridged ALT)</td><td class="addr">0x8d4c8180b12c2b43ee63ac5050e8d0acece440ba</td></tr>
+<tr><td>MiningGameItems</td><td class="addr">0x0CDbf4926a8EdFFaa803B96f8fa90B065DE19Eb2</td></tr>
+<tr><td>ItemShop</td><td class="addr">0xeE6B67c3993884F1b693A4a66e952Bb563463131</td></tr>
+<tr><td>WattStakingPool</td><td class="addr">0x7E8FC9d7D7588F410E1399aC690F901268B08a8d</td></tr>
+<tr><td>CaseFreeMint</td><td class="addr">0xc75504Cb57b26041655dDd739414C240Dd628e7a</td></tr>
+<tr><td>PoolRegistry (v3)</td><td class="addr">0xC65E46645EF9d7Bf1F7D526c9Fb4F4B54704d1DE</td></tr>
+<tr><td>NodeMiningEngine (v3)</td><td class="addr">0x8d372e3e1fbB82e707D09f782a1e3959DC447354</td></tr>
+<tr><td>PayoutHub (v3)</td><td class="addr">0x8eC1Fa15A1DFB038396176a122ED2D385Ee04339</td></tr>
+<tr><td>MiningRigNFT</td><td class="addr">0xf9F94e9fa744DE1209EF28321604a0Aa3B21a884</td></tr>
+<tr><td>WATT v2 admin multisig (2-of-2)</td><td class="addr">0x0f4a9765531bB8f8aa33fB95AeDACD8a660fcBA9</td></tr>
+<tr><td>Classic collection (v1)</td><td class="addr">0x970a8b10147e3459d3cbf56329b76ac18d329728</td></tr>
+<tr><td>Classic NFT staking (v1)</td><td class="addr">0xcbfcA68D10B2ec60a0FB2Bc58F7F0Bfd32CD5275</td></tr>
+<tr><td>Classic WATT staking (v1)</td><td class="addr">0x5C33598c51785122dF275A1f4b4d0f1ab8ecc692</td></tr>
+<tr><td>Classic LP staking (v1)</td><td class="addr">0x672654aBeF98d6b1B78c34368072fF294D0339d3</td></tr>
+</tbody></table></div>
+
+<h4>Altcoinchain 2330</h4>
+<div class="tw"><table>
+<thead><tr><th>Contract</th><th>Address</th></tr></thead>
+<tbody>
+<tr><td>WATT v2</td><td class="addr">0xB7635E386283CAE6FB1A710f19CaA8220beF630D</td></tr>
+<tr><td>WATT v1 (legacy)</td><td class="addr">0x6645143e49B3a15d8F205658903a55E520444698</td></tr>
+<tr><td>WattSwap (v1 → v2)</td><td class="addr">0xdFd07EBEEC3228D14b99f9f39EC71D884ABcbbF4</td></tr>
+<tr><td>WATT OFT adapter</td><td class="addr">0x8ce709Af081031eA9e3C0E5E59b20E9c4A823894</td></tr>
+<tr><td>ALT native lockbox</td><td class="addr">0x435779bFa6959072Ea321f18Fcd2e98F68441294</td></tr>
+<tr><td>MiningGameItems</td><td class="addr">0x851fd0205348783444Fc9EDe99Ca2321681EC99b</td></tr>
+<tr><td>ItemShop</td><td class="addr">0x92809C4a46b4D0F11a48BE21fF13202EA56DcEB1</td></tr>
+<tr><td>WattStakingPool</td><td class="addr">0xa3f8B04310380cD13Ec85B11420d1fc848af36C4</td></tr>
+<tr><td>CaseFreeMint</td><td class="addr">0x91Ae9eDe6016AdF84c643F9Ce5Bb60A9438D792f</td></tr>
+<tr><td>PoolRegistry (v3)</td><td class="addr">0x88beBed99cb45D81F5DEd708682C55a2b26a221C</td></tr>
+<tr><td>NodeMiningEngine (v3)</td><td class="addr">0x755dCf18b521BC7e42f88fdfEBa2C910809AF09F</td></tr>
+<tr><td>PayoutHub (v3)</td><td class="addr">0x7Cee30E196Cb298e4634D7192C527dA37f2C7d57</td></tr>
+<tr><td>MiningRigNFT</td><td class="addr">0x131A875e1bfEB2B3735E5d9Ad5e8871fF6CE9381</td></tr>
+<tr><td>WATT v2 admin multisig (2-of-2)</td><td class="addr">0x59bDaFD1D4dC46648204044eB7259eA1F08A9280</td></tr>
+<tr><td>Marketplace (thirdweb v2 clone)</td><td class="addr">0x8F07428E3fd3860220e1B2163215F971171042AA</td></tr>
+<tr><td>Classic collection (v1)</td><td class="addr">0xf9670e5D46834561813CA79854B3d7147BBbFfb2</td></tr>
+<tr><td>Classic NFT staking (v1)</td><td class="addr">0xe463045318393095F11ed39f1a98332aBCc1A7b1</td></tr>
+<tr><td>wALT (wrapped native)</td><td class="addr">0x48721ADeFE5b97101722c0866c2AffCE797C32b6</td></tr>
+</tbody></table></div>
+
+<h4>WATTxchain 22356</h4>
+<div class="tw"><table>
+<thead><tr><th>Contract</th><th>Address</th></tr></thead>
+<tbody>
+<tr><td>WATT v2</td><td class="addr">0xc4603E2582aE320857379819123dFbFd3093dcfa</td></tr>
+<tr><td>WattSwap (v1 → v2)</td><td class="addr">0x704f5eFcDE5EDD87e767Be78ba8FaA6fAb244bad</td></tr>
+<tr><td>MiningGameItems</td><td class="addr">0x9baaFDE958d0dE13043CBb4292e467EB00ED06B4</td></tr>
+<tr><td>ItemShop</td><td class="addr">0x0239f289Cca84E7Bb899Fe065ba452293D501355</td></tr>
+<tr><td>WattStakingPool</td><td class="addr">0xe9000a1ba29c3e87B4F964E9514eA4e8fd5d5749</td></tr>
+<tr><td>PoolRegistry</td><td class="addr">0x3a02971ceAF9B817e770c36e393A95542bC65Df2</td></tr>
+<tr><td>PayoutHub</td><td class="addr">0x9fAb0fBa9b458A7A0c9D60a26BC33f6E2695F179</td></tr>
+<tr><td>WATT v2 admin multisig (2-of-2)</td><td class="addr">0x536cebbF7ff414EDcd8590080F20DB90aecf8541</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="ref-items">
+<h2>Reference — component catalogue</h2>
+
+<p>All 36 shop items with their on-chain traits. <b>Hash</b> is hash rate, <b>W</b> is WATT consumption per
+hour, <b>SW</b> is stake weight (what powered-off staking pays on), <b>Eff</b> is efficiency, <b>Luck</b>
+biases block finds.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Id</th><th>Item</th><th>Category</th><th>Hash</th><th>W</th><th>SW</th><th>Eff</th><th>Cool</th><th>Pwr</th><th>Luck</th><th>Price (WATT)</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><b>Gaming PC</b></td><td>PC</td><td>2</td><td>5</td><td>1</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>Free mint</b></td></tr>
+<tr><td>2</td><td>Genesis Badge</td><td>Badge</td><td>0</td><td>0</td><td><b>42</b></td><td>10</td><td>—</td><td>—</td><td>10</td><td>20,000</td></tr>
+<tr><td>3</td><td>XL1 Processor</td><td>CPU</td><td>10</td><td>2</td><td>9</td><td>—</td><td>—</td><td>—</td><td>—</td><td>200</td></tr>
+<tr><td>4</td><td>TX120 GPU</td><td>GPU</td><td>20</td><td>10</td><td>11</td><td>—</td><td>—</td><td>—</td><td>—</td><td>700</td></tr>
+<tr><td>5</td><td>GP50 GPU</td><td>GPU</td><td>33</td><td>16</td><td>18</td><td>—</td><td>—</td><td>—</td><td>—</td><td>1,200</td></tr>
+<tr><td>8</td><td>TX190 GPU</td><td>GPU</td><td>60</td><td>22</td><td>30</td><td>—</td><td>—</td><td>—</td><td>—</td><td>6,000</td></tr>
+<tr><td>9</td><td>XL190 CPU</td><td>CPU</td><td>35</td><td>8</td><td>22</td><td>—</td><td>—</td><td>—</td><td>—</td><td>4,500</td></tr>
+<tr><td>10</td><td>GP720 GPU</td><td>GPU</td><td>110</td><td>38</td><td>48</td><td>—</td><td>—</td><td>—</td><td>—</td><td>14,000</td></tr>
+<tr><td>11</td><td>GPX880 GPU</td><td>GPU</td><td>180</td><td>60</td><td>75</td><td>—</td><td>—</td><td>—</td><td>—</td><td>30,000</td></tr>
+<tr><td>12</td><td>XXL270 CPU</td><td>CPU</td><td>70</td><td>15</td><td>40</td><td>—</td><td>—</td><td>—</td><td>—</td><td>12,000</td></tr>
+<tr><td>13</td><td>Bit Hammer ASIC</td><td>ASIC</td><td><b>320</b></td><td>110</td><td>120</td><td>—</td><td>—</td><td>—</td><td>—</td><td>60,000</td></tr>
+<tr><td>14</td><td>Mining Rig Frame</td><td>Frame</td><td>0</td><td>0</td><td>10</td><td>—</td><td>—</td><td>—</td><td>—</td><td>8,000</td></tr>
+<tr><td>17</td><td>Red Mouse</td><td>Peripheral</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td><td>2</td><td>2,500</td></tr>
+<tr><td>18</td><td>RGB Keyboard</td><td>Peripheral</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td><td>2</td><td>3,500</td></tr>
+<tr><td>19</td><td>Server Tower</td><td>Structure</td><td>0</td><td>0</td><td>40</td><td>—</td><td>—</td><td>—</td><td>—</td><td>20,000</td></tr>
+<tr><td>23</td><td>LC23 Monitor</td><td>Peripheral</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td><td>2</td><td>5,000</td></tr>
+<tr><td>24</td><td>Gaming Chair</td><td>Peripheral</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td><td>3</td><td>5,000</td></tr>
+<tr><td>25</td><td>Shipping Container</td><td>Structure</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td><td>—</td><td>50,000</td></tr>
+<tr><td>26</td><td>Warehouse</td><td>Structure</td><td>0</td><td>0</td><td>0</td><td>—</td><td>—</td><td>—</td><td>—</td><td>250,000</td></tr>
+<tr><td>40–47</td><td>Power Upgrade Lv1–8</td><td>Upgrade</td><td colspan="6">Raises the farm's power cap</td><td>400 · 1,100 · 2,600 · 6,000 · 14,000 · 32,000 · 70,000 · 160,000</td></tr>
+<tr><td>50–57</td><td>Cooling Upgrade Lv1–8</td><td>Upgrade</td><td colspan="6">Lowers the thermal coefficient</td><td>350 · 900 · 2,200 · 5,200 · 12,000 · 28,000 · 60,000 · 130,000</td></tr>
+<tr><td>60–61</td><td>Rack Expansion Lv1–2</td><td>Structure</td><td colspan="6">More GPUs per framed rig</td><td>1,500 · 9,000</td></tr>
+</tbody></table></div>
+
+<p>Ids 1–5 are the original v1 components and migrate 1:1 from the classic collection. Beyond level 8,
+power and cooling ladders continue indefinitely — see <a href="#components">Upgrades are endless</a>.</p>
+</section>
+
+<section id="ref-targets">
+<h2>Reference — payout targets and algorithms</h2>
+
+<p>Payout targets are registered on the PayoutHub at <b>runtime</b>, not compiled in. That is the change
+that made PoS chains and masternodes possible at all — neither is reachable by a mining algorithm, so the
+payout target comes from the <i>pool</i> you chose, not from your rig's algorithm trait. Traits still decide
+<i>how much</i>.</p>
+
+<div class="tw"><table>
+<thead><tr><th>Target id</th><th>Coin</th><th>Kind</th><th>Payout address form</th></tr></thead>
+<tbody>
+<tr><td>0</td><td><b class="c-alt">ALT</b> — Altcoinchain</td><td>Hybrid PoW/PoS</td><td>Your connected EVM address</td></tr>
+<tr><td>1</td><td><b class="c-wtx">WTX</b> — WATTxchain</td><td>Hybrid PoW/PoS</td><td>base58 <code>W…</code> — must be registered</td></tr>
+<tr><td>2</td><td><b class="c-pol">POL</b> — Polygon</td><td>PoS</td><td>Your connected EVM address</td></tr>
+<tr><td>3</td><td><b class="c-bsv">BSV</b> — Bitcoin SV</td><td>PoW</td><td>BSV ordinals address — must be registered</td></tr>
+<tr><td>4</td><td><b>HTH</b> — Help The Homeless</td><td>Masternode</td><td><code>h…</code> — must be registered</td></tr>
+<tr><td>5</td><td><b>BITN</b> — Bitnet</td><td>PoS</td><td><code>B…</code> — must be registered</td></tr>
+</tbody></table></div>
+
+<p>Ids are fixed and the game hard-codes them, so they are stable. A pool may pin one algorithm or accept
+any (<code>ANY_ALGO = 255</code>, the normal setting for PoS and masternode pools).</p>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>Algorithm</th><th>Origin</th><th>Hardware</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>SHA256D</td><td>Bitcoin</td><td>ASIC</td></tr>
+<tr><td>1</td><td>Scrypt</td><td>Litecoin</td><td>ASIC / GPU</td></tr>
+<tr><td>2</td><td>Ethash</td><td>Ethereum Classic</td><td>GPU</td></tr>
+<tr><td>3</td><td>RandomX</td><td>Monero</td><td>CPU</td></tr>
+<tr><td>4</td><td>Equihash</td><td>Zcash</td><td>GPU / ASIC</td></tr>
+<tr><td>5</td><td>X11</td><td>Dash</td><td>ASIC / GPU</td></tr>
+<tr><td>6</td><td>kHeavyHash</td><td>Kaspa</td><td>GPU / ASIC</td></tr>
+</tbody></table></div>
+</section>
+<section id="trouble">
+<h2>Troubleshooting</h2>
+
+<h4>"Connect Wallet does nothing — no popup, no error"</h4>
+<p>Brave Shields blocking a script or RPC host. All page logic lives inside one ES module; if any import in
+it is blocked, the module never executes, so the button exists with no handler attached and clicking it is
+silently inert. It reads exactly like a wallet bug and is not one. Drop Shields to standard for the site
+and reload.</p>
+
+<h4>"Component cards show flat pictures instead of 3D models"</h4>
+<p>WebGL is unavailable — usually Brave's fingerprinting protection on Strict rather than a hardware
+problem. The pre-rendered 512 px stills are the intended fallback, taken from the same on-chain models with
+the same camera and lighting. Without WebGL the page also skips the multi-megabyte GLB downloads entirely,
+so it is faster.</p>
+
+<h4>"Stake failed: execution reverted (unknown custom error)"</h4>
+<p>Almost always <code>ERC1155MissingApprovalForAll</code> (selector <code>0xe237d922</code>) — the staking
+contract takes custody and needs <code>setApprovalForAll</code> first. Every stake path approves on demand
+now, but an older tab will not. Reload, or press <b>Approve items</b>.</p>
+
+<h4>"The bridge rejects my MAX amount"</h4>
+<p><code>SlippageExceeded</code>. Quantise to 6 decimals — see
+<a href="#bridge-oft">the 6-decimal trap</a>.</p>
+
+<h4>"contract runner does not support sending transactions"</h4>
+<p>A read-only contract handle was used for a write. If you see this on our pages, tell us — it is a bug
+on our side, not yours, and it has bitten us twice (unstake and one liquidity path).</p>
+
+<h4>"gas price below minimum: gas tip cap 1500000000, minimum needed 25000000000"</h4>
+<p>Polygon enforces a <b>25 gwei priority-fee floor</b> and some libraries default to 1.5 gwei. Set
+<code>maxPriorityFeePerGas</code> to at least 30 gwei.</p>
+
+<h4>"could not coalesce error" on Altcoinchain</h4>
+<p>Altcoinchain's node does not like EIP-1559 fee data from some wallets. Use legacy (type-0) transactions
+with an explicit <code>gasPrice</code>. Our pages force this automatically.</p>
+
+<h4>"My swap is stuck at 'waiting for your deposit'"</h4>
+<p>Check the amber banner. If WATTxchain has stopped producing blocks your deposit cannot reach three
+confirmations, and the desk waits rather than paying. Funds are safe and refundable throughout, and the
+desk pays automatically the moment blocks resume.</p>
+
+<h4>"My garage is empty but I own components"</h4>
+<p>They are staked. Escrowed items are owned by the staking contract, so <code>balanceOf</code> cannot see
+them. Open the wallet panel's <b>STAKED COMPONENTS</b> section and unstake what you want to build with.</p>
+
+<h4>"I upgraded and my wallet never prompted me"</h4>
+<p>Either you have game credit (that is the point of it — one signature up front, then no prompts), or you
+are on a stale tab from an older build spending simulated WATT. Hard-reload and check the credit banner.</p>
+
+<h4>"The free-mint button reverts with 'not for sale'"</h4>
+<p>Old build. The free case is minted by <code>CaseFreeMint</code>, not by the shop. Use the current site.</p>
+
+<h4>"WATT sent to the staking pool never showed up"</h4>
+<p>A plain <code>transfer</code> strands it. The pool only counts <code>fund(amount)</code>.</p>
+
+<h4>Pages look stale after an update</h4>
+<p>GitHub Pages caches for up to ten minutes. Hard-reload (<code>Ctrl</code>/<code>Cmd</code> +
+<code>Shift</code> + <code>R</code>).</p>
+</section>
+
+<section id="glossary">
+<h2>Glossary</h2>
+
+<div class="tw"><table>
+<thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><b>WATT</b></td><td>The game's fuel and reward token. v1 is the immutable 2022 original; v2 is the role-gated replacement. 1:1, always.</td></tr>
+<tr><td><b>Component / item</b></td><td>An ERC-1155 token — a case, CPU, GPU, ASIC, frame, structure, peripheral, badge or upgrade.</td></tr>
+<tr><td><b>Rig</b></td><td>An ERC-721 built from components. Rigs mine; components stake.</td></tr>
+<tr><td><b>Powered off</b></td><td>A staked component minting WATT by stake weight. Costs nothing to hold.</td></tr>
+<tr><td><b>Powered on</b></td><td>A rig mining in a pool, burning WATT as fuel. 99 % burned, 1 % to the host.</td></tr>
+<tr><td><b>Effective power</b></td><td><code>hashRate × efficiency × 100 / wattConsumption</code>. Your share of a pool.</td></tr>
+<tr><td><b>Stake weight</b></td><td>What powered-off staking pays on. Gaming PC 1, Genesis Badge 42, XL1 9, TX120 11, GP50 18.</td></tr>
+<tr><td><b>Target</b></td><td>A payout coin registered on the PayoutHub at runtime, with a kind: PoW, PoS, Masternode or Hybrid.</td></tr>
+<tr><td><b>Host</b></td><td>Someone who locked 100,000 WATT v2 and may open pools. Earns 1 % of burns plus their fee, and mines free.</td></tr>
+<tr><td><b>PayoutHub</b></td><td>The contract holding each target's balance, each miner's running credit, and each miner's non-EVM payout address.</td></tr>
+<tr><td><b>NodeMiningEngine</b></td><td>The contract that splits reported deposits by effective power and settles WATT fuel.</td></tr>
+<tr><td><b>Operator daemon</b></td><td>The off-chain service that reads real node income, reports it on-chain, and pushes payouts. Pays all the gas.</td></tr>
+<tr><td><b>OFT</b></td><td>LayerZero's Omnichain Fungible Token — burn on source, mint on destination, one supply.</td></tr>
+<tr><td><b>DVN</b></td><td>Decentralised Verifier Network — the party that attests a LayerZero packet. Ours is self-hosted.</td></tr>
+<tr><td><b>HTLC</b></td><td>Hash Time-Locked Contract. Your bridge deposit is always refundable if the desk does not pay.</td></tr>
+<tr><td><b>1Sat Ordinal</b></td><td>Data inscribed permanently on Bitcoin SV against a single satoshi. All game art lives this way.</td></tr>
+<tr><td><b>BSV-21</b></td><td>The Bitcoin SV fungible-token standard. WATT and the five classic rigs exist as BSV-21 tokens.</td></tr>
+<tr><td><b>Superstaker</b></td><td>A WATTxchain node accepting delegated stake for a fee. Minimum self-stake 20,000 WTX.</td></tr>
+</tbody></table></div>
+</section>
+
+<footer>
+  <p><b>The Mining Game</b> — docs.mining-game.wattxchange.app · also served at
+  <a href="https://stake.mining-game.wattxchange.app/docs.html">stake.mining-game.wattxchange.app/docs.html</a></p>
+  <p>Every contract address on this page was read from the live chains. Where a fee, a trust boundary or a
+  known defect exists, it is written down here rather than left for you to discover. If something on this
+  page disagrees with the chain, the chain is right — tell us and we will fix the page.</p>
+  <p style="margin-top:14px">
+    <a href="https://mining-game.wattxchange.app/">Play</a> ·
+    <a href="https://stake.mining-game.wattxchange.app/">Stake</a> ·
+    <a href="https://stake.mining-game.wattxchange.app/pools.html">Pools</a> ·
+    <a href="https://stake.mining-game.wattxchange.app/bridge.html">Bridge</a> ·
+    <a href="https://bridge.wattxchange.app/">Desk</a> ·
+    <a href="https://the-mining-game.github.io/">Legacy site</a> ·
+    <a href="https://wattxchain.org/">WATTx</a> ·
+    <a href="https://github.com/The-Mining-Game">GitHub</a>
+  </p>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function(){
+  var toc = document.getElementById('toc'), burger = document.getElementById('burger');
+  burger.addEventListener('click', function(){ toc.classList.toggle('open'); });
+  toc.addEventListener('click', function(e){ if(e.target.tagName === 'A') toc.classList.remove('open'); });
+
+  var links = [].slice.call(toc.querySelectorAll('a[href^="#"]'));
+  var map = {};
+  links.forEach(function(a){
+    var el = document.getElementById(a.getAttribute('href').slice(1));
+    if(el) map[el.id] = a;
+  });
+  var seen = {};
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){ seen[en.target.id] = en.isIntersecting ? en.intersectionRatio : 0; });
+    var best = null, bestV = 0;
+    Object.keys(seen).forEach(function(id){ if(seen[id] > bestV){ bestV = seen[id]; best = id; } });
+    if(best){
+      links.forEach(function(a){ a.classList.remove('on'); });
+      if(map[best]) map[best].classList.add('on');
+    }
+  }, { rootMargin: '-70px 0px -55% 0px', threshold: [0, .1, .5, 1] });
+  Object.keys(map).forEach(function(id){ io.observe(document.getElementById(id)); });
+})();
+</script>
+</body>
+</html>
