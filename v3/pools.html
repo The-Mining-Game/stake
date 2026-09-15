@@ -68,7 +68,7 @@
       <p class="d">Create a pool that pays out on a target chain. (Requires an active host stake above.)</p>
       <div class="row"><div class="field"><label>Pool name</label><input id="pName" placeholder="ALT PoS Pool"></div>
         <div class="field"><label>Payout chain</label><select id="pTarget"></select></div></div>
-      <div class="row"><div class="field"><label>Node endpoint (RPC/validator)</label><input id="pEndpoint" placeholder="https://rpc.wattxchange.app"></div></div>
+      <div class="row"><div class="field"><label>Node endpoint (RPC/validator)</label><input id="pEndpoint" placeholder="https://alt-rpc-live.wattxchange.app"></div></div>
       <div class="row"><div class="field"><label>Pool fee (bps, 300=3%)</label><input id="pRewardFee" type="number" value="300"></div>
         <div class="field"><label>WATT cut (bps)</label><input id="pWattCut" type="number" value="0"></div>
         <button id="btnCreate">Create pool</button></div>
@@ -120,7 +120,7 @@ import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.4/+esm";
 const CFG = {
   137:  { name:"Polygon", hex:"0x89", rpc:"https://polygon-bor-rpc.publicnode.com", watt:"0x387693eCEC037C61943404F03c097d2ADA15ae3f",
     registry:"0xCe347180C3A45151C10366Da43fD822289ebB075", hub:"0x6f8330bB06D93A8932618EC1Fbb2818323EC3bf5", engine:"0x782585f15E75b76C4bE33Ae31c47Bc437C9Bbfe0", rigNft:"0xf9F94e9fa744DE1209EF28321604a0Aa3B21a884" },
-  2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://rpc.wattxchange.app", watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D",
+  2330: { name:"Altcoinchain", hex:"0x91a", rpc:"https://alt-rpc-live.wattxchange.app", watt:"0xB7635E386283CAE6FB1A710f19CaA8220beF630D",
     registry:"0x0f1e3C2336fBf35148FdbA21F81fA3B57a1DF254", hub:"0xfbc6168D4c4f112275713B976612891E432e265e", engine:"0xB0A142d97225AD61682d77A30a2eC7144826F487", rigNft:"0x131A875e1bfEB2B3735E5d9Ad5e8871fF6CE9381" },
   22356:{ name:"WATTxchain", hex:"0x5754", rpc:"https://rpc-wtx.wattxchange.app", watt:"0xc4603E2582aE320857379819123dFbFd3093dcfa",
     registry:"0x3a02971ceAF9B817e770c36e393A95542bC65Df2", hub:"0x9fAb0fBa9b458A7A0c9D60a26BC33f6E2695F179", engine:"0xE2D4eC76dFFAC5215a03332B4A01ce0AFF9A91c1", rigNft:"0x5f9be9282E29fCE419cE2e424ED3fd0be842C7e7" },
