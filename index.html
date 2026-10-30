@@ -404,6 +404,9 @@ const CATALOG = [
   { id:13, name:"Bit Hammer ASIC",  price:60000, gen:2, scene:"13_Bit_Hammer_ASIC" },
   { id:19, name:"Server Tower",     price:20000, gen:2, scene:"19_Server_Tower" },
 ];
+// display name for a component id — the Buy components name first, so staked
+// positions read the same as the shop ("TX120 GPU", not "Component #4")
+function compName(id){ id=Number(id); const it=CATALOG.find(x=>x.id===id); return it?it.name:(NAMES[id]||["Component #"+id])[0]; }
 function assetUrl(key){ const o = BSV_ORIGIN[key]; return o ? "https://ordinals.gorillapool.io/content/"+o : null; }
 async function renderGallery(){
   const g = document.getElementById("gallery"); if(g.dataset.built) return; g.dataset.built = "1";
@@ -621,7 +624,7 @@ async function renderPositions(mg, n){
     const el=document.createElement("div"); el.className="item";
     // Stake-site positions are powered-OFF earners only. Powering a rig ON to mine
     // requires an assembled rig staked into a pool — that happens in the game, not here.
-    el.innerHTML=`<div><div class="n">Component #${p.id} ×${p.amount}</div><div class="s">⚡ earning WATT · weight ${p.weight}</div></div><div class="grow"></div>`;
+    el.innerHTML=`<div><div class="n">${compName(p.id)} ×${p.amount}</div><div class="s">id ${p.id} · ⚡ earning WATT · weight ${p.weight}</div></div><div class="grow"></div>`;
     // mg here is the rc() read contract — writes must go through the signer
     const bu=document.createElement("button"); bu.textContent="Unstake";
     bu.onclick=()=>{ if(!signer) return toast("Connect your wallet first","err"); tx(c(cur().mg,ABI.mg,true).unstake(i),"Unstaked"); };
@@ -724,9 +727,9 @@ $("stakeSelected").onclick=async()=>{
   const mg=c(cur().mg,ABI.mg,true);
   let done=0;
   for(const p of picks){
-    try{ toast(`Staking ${p.amt}× #${p.id} — confirm in wallet (${done+1}/${picks.length})…`);
+    try{ toast(`Staking ${p.amt}× ${compName(p.id)} — confirm in wallet (${done+1}/${picks.length})…`);
       const t=await mg.stake(p.id,p.amt,false,{gasLimit:await stakeGas(p.id,p.amt)}); await t.wait(); done++;
-    }catch(e){ toast("Stopped at #"+p.id+": "+errMsg(e,80),"err"); break; }
+    }catch(e){ toast("Stopped at "+compName(p.id)+": "+errMsg(e,80),"err"); break; }
   }
   if(done) toast(`Staked ${done} component type${done>1?"s":""} — earning WATT ✓`,"ok");
   refreshAll();
